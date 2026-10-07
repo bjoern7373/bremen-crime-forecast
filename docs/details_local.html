@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bremen Tatkarte - Details</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<meta name="theme-color" content="#1f2937">
+<style>
+  :root {
+    --surface-1: #fcfcfb; --page-plane: #f9f9f7; --text-primary: #0b0b0b;
+    --text-secondary: #52514e; --text-muted: #898781; --border: rgba(11,11,11,0.10);
+    --accent: #2a78d6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-1: #1a1a19; --page-plane: #0d0d0d; --text-primary: #ffffff;
+      --text-secondary: #c3c2b7; --text-muted: #898781; --border: rgba(255,255,255,0.10);
+      --accent: #3987e5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--page-plane); color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif; padding: 12px;
+  }
+  h1 { font-size: 15px; margin: 0 0 2px 0; }
+  .hint { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; }
+  .empty { font-size: 12px; color: var(--text-muted); padding: 20px 4px; text-align: center; }
+  .card {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px; margin-bottom: 8px;
+  }
+  .card:first-child { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .card-cat {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 10px;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+    color: var(--cat-color, var(--accent)); margin-bottom: 4px;
+  }
+  .card-cat .swatch { width: 9px; height: 9px; border-radius: 50%; background: var(--cat-color, var(--accent)); }
+  .card-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; line-height: 1.3; }
+  .card-meta { font-size: 11px; color: var(--text-secondary); margin-bottom: 2px; }
+  .card-prec { font-size: 10px; color: var(--text-muted); font-style: italic; margin-bottom: 8px; }
+  .card-btn {
+    display: inline-block; font-size: 11px; font-weight: 600; padding: 5px 10px;
+    border-radius: 6px; border: 1px solid var(--accent); color: var(--accent);
+    background: transparent; cursor: pointer;
+  }
+  .card-btn:hover { background: var(--accent); color: white; }
+</style>
+</head>
+<body>
+  <h1>Ausgewählte Vorfälle</h1>
+  <div class="hint">Klicke einen Punkt oder Halo auf der Karte. Die Meldung öffnet sich in einem eigenen Fenster.</div>
+  <div id="list"><div class="empty">Noch nichts ausgewählt.</div></div>
+
+<script>
+(function () {
+  var list = document.getElementById("list");
+  var seen = [];
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function render() {
+    if (seen.length === 0) {
+      list.innerHTML = '<div class="empty">Noch nichts ausgewählt.</div>';
+      return;
+    }
+    list.innerHTML = "";
+    seen.forEach(function (item, i) {
+      var d = item.incident, cat = item.catLabel, color = item.catColor;
+      var card = document.createElement("div");
+      card.className = "card";
+      card.style.setProperty("--cat-color", color);
+      card.innerHTML =
+        '<div class="card-cat"><span class="swatch"></span>' + escapeHtml(cat) + '</div>' +
+        '<div class="card-title">' + escapeHtml(d.title) + '</div>' +
+        '<div class="card-meta">' + escapeHtml(d.date || "") + ' &middot; ' + escapeHtml(d.stadtteil || "") + '</div>' +
+        '<div class="card-meta">' + escapeHtml(d.ort || "") + '</div>' +
+        '<div class="card-prec">' + (d.prec === "a" ? "genaue Adresse" : "nur Stadtteil-Angabe (ungefähre Lage)") + '</div>' +
+        (d.series_id !== undefined ? '<div class="card-prec" style="color:#000;font-weight:700;font-style:normal;">⚭ Teil einer möglichen Serie (' + d.series_n + ' Taten, gleiche Kategorie, räumlich/zeitlich nah)</div>' : '') +
+        '<a class="card-btn" href="message_local.html?id=' + encodeURIComponent(d.id) + '" target="_blank" rel="noopener">Meldung öffnen ↗</a>';
+      list.appendChild(card);
+    });
+  }
+
+  if ("BroadcastChannel" in window) {
+    var channel = new BroadcastChannel("bremen-tatkarte");
+    channel.onmessage = function (ev) {
+      if (ev.data && ev.data.type === "select") {
+        seen.unshift(ev.data);
+        if (seen.length > 25) seen.length = 25;
+        render();
+      }
+    };
+  } else {
+    list.innerHTML = '<div class="empty">Dieser Browser unterstützt BroadcastChannel nicht.</div>';
+  }
+})();
+</script>
+</body>
+</html>

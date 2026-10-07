@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pressemeldung</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<meta name="theme-color" content="#1f2937">
+<style>
+  :root { --surface:#fcfcfb; --text:#0b0b0b; --muted:#52514e; --rule:#e1e0d9; --accent:#2a78d6; }
+  @media (prefers-color-scheme: dark) {
+    :root { --surface:#1a1a19; --text:#fff; --muted:#c3c2b7; --rule:#2c2c2a; --accent:#3987e5; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    max-width: 640px; margin: 0 auto; padding: 28px 20px;
+    background: var(--surface); color: var(--text); line-height: 1.55;
+  }
+  .cat {
+    display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .03em; color: var(--cat-color, var(--accent)); margin-bottom: 10px;
+  }
+  h1 { font-size: 21px; margin: 0 0 8px 0; }
+  .meta { font-size: 13px; color: var(--muted); margin-bottom: 3px; }
+  hr { border: none; border-top: 1px solid var(--rule); margin: 16px 0; }
+  .body { font-size: 14px; white-space: pre-wrap; }
+  .src { font-size: 12px; margin-top: 20px; color: var(--muted); }
+  a { color: var(--accent); }
+  .loading { color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+  <div id="content" class="loading">Lade Pressemeldung&hellip;</div>
+
+<script>
+(function () {
+  var CATS = {
+    "Raub": "Raub", "Einbruch": "Einbruch", "Diebstahl": "Diebstahl",
+    "Drogendelikt": "Drogendelikt", "Koerperverletzung": "Körperverletzung",
+    "Waffendelikt": "Waffendelikt", "Toetungsdelikt": "Tötungsdelikt",
+    "Sachbeschaedigung": "Sachbeschädigung", "Sonstiges": "Sonstiges"
+  };
+  var CAT_COLORS = {
+    "Raub": "#2a78d6", "Einbruch": "#eb6834", "Diebstahl": "#1baf7a",
+    "Drogendelikt": "#eda100", "Koerperverletzung": "#e87ba4", "Waffendelikt": "#008300",
+    "Toetungsdelikt": "#4a3aa7", "Sachbeschaedigung": "#e34948", "Sonstiges": "#898781"
+  };
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  var params = new URLSearchParams(location.search);
+  var id = params.get("id");
+  var content = document.getElementById("content");
+
+  fetch("map_data.json").then(function (r) { return r.json(); }).then(function (DATA) {
+    var d = DATA.find(function (x) { return String(x.id) === String(id); });
+    if (!d) {
+      content.textContent = "Vorfall nicht gefunden (id=" + id + ").";
+      return;
+    }
+    document.title = d.title;
+    var catLabel = CATS[d.cat] || d.cat;
+    var color = CAT_COLORS[d.cat] || "#2a78d6";
+    document.documentElement.style.setProperty("--cat-color", color);
+
+    var html =
+      '<div class="cat">' + escapeHtml(catLabel) + '</div>' +
+      '<h1>' + escapeHtml(d.title) + '</h1>' +
+      '<div class="meta">' + escapeHtml(d.date || "") + ' &middot; ' + escapeHtml(d.stadtteil || "") + '</div>' +
+      '<div class="meta">' + escapeHtml(d.ort || "") + '</div>' +
+      '<hr>' +
+      '<div class="body">' + escapeHtml(d.text || "(kein Volltext gespeichert)") + '</div>';
+
+    if (d.source_url) {
+      html += '<div class="src">Original-Pressemeldung (ggf. inzwischen von der Polizei gelöscht): ' +
+        '<a href="' + escapeHtml(d.source_url) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(d.source_url) + '</a></div>';
+    }
+    content.className = "";
+    content.innerHTML = html;
+  }).catch(function (err) {
+    content.textContent = "Fehler beim Laden: " + err;
+  });
+})();
+</script>
+</body>
+</html>

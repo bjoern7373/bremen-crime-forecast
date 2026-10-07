@@ -1,0 +1,160 @@
+[
+  {
+    "category": "Raub",
+    "pm_ids": [
+      47025.0,
+      47425.0,
+      48525.0,
+      48725.0,
+      48925.0,
+      49825.0
+    ],
+    "n": 6,
+    "date_start": "2025-07-19",
+    "date_end": "2025-08-02",
+    "span_days": 14,
+    "max_spread_m": 1990,
+    "centroid_lat": 53.07867,
+    "centroid_lon": 8.80481,
+    "titles": [
+      "Wertvolle Uhr geraubt",
+      "Videoleitstelle identifiziert Räuber",
+      "Jugendliche geben sich als Zivilpolizisten aus und überfallen 16-Jährigen",
+      "20 Jahre alter Straßenräuber geht in Haft",
+      "Bitte lächeln! Polizei schnappt Fotoräuber",
+      "Trio überfällt 19-Jährigen in der Neustadt"
+    ],
+    "stadtteile": [
+      "Mitte",
+      "Neustadt"
+    ]
+  },
+  {
+    "category": "Sonstiges",
+    "pm_ids": [
+      18626.0,
+      11126.0,
+      15126.0,
+      16226.0,
+      16126.0,
+      16526.0
+    ],
+    "n": 6,
+    "date_start": "2026-02-14",
+    "date_end": "2026-03-06",
+    "span_days": 20,
+    "max_spread_m": 2030,
+    "centroid_lat": 53.07516,
+    "centroid_lon": 8.81387,
+    "titles": [
+      "Einsatz im Viertel – 2500 Menschen auf der Sielwallkreuzung",
+      "Noch freie Plätze: Vortrag „Sexualisierte Gewalt im Netz – Kinder sicher begleiten“",
+      "Polizei stoppt betrunkenen Autofahrer",
+      "Vermummte Gruppe zündet Pyrotechnik und verletzt Polizisten",
+      "Bombendrohung löst Polizeieinsatz aus",
+      "Indiana Jones und der verlorene Poller"
+    ],
+    "stadtteile": [
+      "Mitte"
+    ]
+  },
+  {
+    "category": "Einbruch",
+    "pm_ids": [
+      55626.0,
+      57226.0,
+      57926.0,
+      58526.0,
+      60726.0
+    ],
+    "n": 5,
+    "date_start": "2026-08-23",
+    "date_end": "2026-09-09",
+    "span_days": 17,
+    "max_spread_m": 2057,
+    "centroid_lat": 53.07555,
+    "centroid_lon": 8.81783,
+    "titles": [
+      "Einbrecher gestellt",
+      "Polizei fasst Kiosk-Einbrecher",
+      "Einbruch in Bar - Polizei fasst Täter",
+      "Nach Einbruch festgenommen",
+      "Polizei schnappt sechs mutmaßliche Einbrecher in der Innenstadt"
+    ],
+    "stadtteile": [
+      "Mitte",
+      "Östliche Vorstadt"
+    ]
+  },
+  {
+    "category": "Drogendelikt",
+    "pm_ids": [
+      61226.0,
+      61926.0,
+      63326.0
+    ],
+    "n": 3,
+    "date_start": "2026-09-12",
+    "date_end": "2026-09-24",
+    "span_days": 12,
+    "max_spread_m": 942,
+    "centroid_lat": 53.08676,
+    "centroid_lon": 8.82399,
+    "titles": [
+      "Verkehrsunfall am Hauptbahnhof",
+      "E-Scooter-Fahrer flüchtet – Polizist verletzt",
+      "Polizei beendet Drogenfahrt"
+    ],
+    "stadtteile": [
+      "Mitte",
+      "Schwachhausen"
+    ]
+  },
+  {
+    "category": "Koerperverletzung",
+    "pm_ids": [
+      2925.0,
+      4425.0,
+      4525.0
+    ],
+    "n": 3,
+    "date_start": "2025-01-14",
+    "date_end": "2025-01-22",
+    "span_days": 8,
+    "max_spread_m": 840,
+    "centroid_lat": 53.06844,
+    "centroid_lon": 8.78845,
+    "titles": [
+      "Korrektur: Öffentlichkeitsfahndung nach gefährlicher Körperverletzung in der Neustadt",
+      "Tatverdächtige nach Öffentlichkeitsfahndung identifiziert",
+      "17-Jähriger mit Pfefferspray und Messer angegriffen"
+    ],
+    "stadtteile": [
+      "Neustadt"
+    ]
+  },
+  {
+    "category": "Raub",
+    "pm_ids": [
+      45326.0,
+      47326.0,
+      49226.0
+    ],
+    "n": 3,
+    "date_start": "2026-07-05",
+    "date_end": "2026-07-26",
+    "span_days": 21,
+    "max_spread_m": 1283,
+    "centroid_lat": 53.07873,
+    "centroid_lon": 8.81844,
+    "titles": [
+      "Überfall auf Hotel",
+      "Räubertrio gestellt",
+      "Bargeld am Geldautomaten entwendet – Täter bedroht Verfolger mit Messer"
+    ],
+    "stadtteile": [
+      "Mitte",
+      "Östliche Vorstadt"
+    ]
+  }
+]

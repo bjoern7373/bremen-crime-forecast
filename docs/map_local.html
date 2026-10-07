@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bremen Tatkarte</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<meta name="theme-color" content="#1f2937">
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("service-worker.js").catch(function () {});
+    });
+  }
+</script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+  :root {
+    --surface-1:      #fcfcfb;
+    --page-plane:     #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --gridline:       #e1e0d9;
+    --border:         rgba(11,11,11,0.10);
+
+    --c-raub:     #2a78d6;
+    --c-einbruch: #eb6834;
+    --c-diebstahl:#1baf7a;
+    --c-drogen:   #eda100;
+    --c-kv:       #e87ba4;
+    --c-waffe:    #008300;
+    --c-toetung:  #4a3aa7;
+    --c-sach:     #e34948;
+    --c-sonst:    #898781;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-1:      #1a1a19;
+      --page-plane:     #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --gridline:       #2c2c2a;
+      --border:         rgba(255,255,255,0.10);
+      --c-raub:     #3987e5; --c-einbruch: #d95926; --c-diebstahl:#199e70;
+      --c-drogen:   #c98500; --c-kv:       #d55181; --c-waffe:    #008300;
+      --c-toetung:  #9085e9; --c-sach:     #e66767; --c-sonst:    #898781;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--page-plane);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 14px;
+    display: flex; flex-direction: column;
+    height: 100vh;
+  }
+  .app { display: flex; flex-direction: column; gap: 10px; flex: 1; min-height: 0; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; padding: 2px; flex: 0 0 auto; }
+  h1 { font-size: 19px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+  .subtitle { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  .stats { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+  .toolbar {
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 10px; padding: 7px 10px; flex: 0 0 auto;
+  }
+  .toolbar label { font-size: 12px; color: var(--text-secondary); }
+  .toolbar select {
+    font-size: 12px; padding: 4px 7px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--page-plane); color: var(--text-primary);
+  }
+  .toolbar .sep { width: 1px; height: 18px; background: var(--gridline); margin: 0 2px; }
+  .conn-status { font-size: 11px; color: var(--text-muted); margin-left: auto; }
+  .conn-status.on { color: #1baf7a; }
+  .zoom-hint { font-size: 11px; color: var(--text-muted); }
+  .details-btn {
+    font-size: 12px; font-weight: 600; padding: 5px 10px; border-radius: 6px;
+    border: 1px solid var(--text-primary); color: var(--text-primary);
+    background: transparent; cursor: pointer;
+  }
+  .details-btn:hover { background: var(--text-primary); color: var(--surface-1); }
+  .details-btn.open { opacity: 0.5; cursor: default; }
+  .details-btn.open:hover { background: transparent; color: var(--text-primary); }
+
+  .layout { display: flex; gap: 10px; align-items: stretch; flex: 1; min-height: 0; }
+  .map-panel {
+    position: relative; flex: 1; min-width: 0;
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden;
+  }
+  #map { position: absolute; inset: 0; background: var(--page-plane); }
+
+  .sidebar {
+    width: 230px; flex-shrink: 0; background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 10px; padding: 11px; display: flex; flex-direction: column; gap: 9px;
+    overflow-y: auto;
+  }
+  .sidebar h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin: 0 0 2px 0; }
+  .legend-row {
+    display: flex; align-items: center; gap: 8px; padding: 5px 6px; border-radius: 6px;
+    cursor: pointer; font-size: 12px; user-select: none;
+  }
+  .legend-row:hover { background: var(--page-plane); }
+  .legend-row.off { opacity: 0.4; }
+  .legend-swatch {
+    width: 15px; height: 15px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 7px; font-weight: 700; color: #fff; border: 2px solid var(--surface-1);
+    box-shadow: 0 0 0 1px var(--border);
+  }
+  .legend-label { flex: 1; }
+  .legend-count { font-size: 10px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+  .explorer-row { display: flex; flex-direction: column; gap: 2px; font-size: 11px; color: var(--text-secondary); }
+  .explorer-row label { display: flex; justify-content: space-between; }
+  .explorer-row input[type="range"] { width: 100%; accent-color: var(--text-primary); }
+  .criteria-box { display: flex; flex-direction: column; gap: 3px; }
+  .criteria-box label {
+    display: flex; align-items: center; gap: 6px; font-size: 11px;
+    color: var(--text-secondary); cursor: pointer;
+  }
+  .criteria-box input { accent-color: var(--text-primary); }
+  .explorer-count {
+    font-size: 11px; font-weight: 700; color: var(--text-primary);
+    padding: 4px 0 2px 0; font-variant-numeric: tabular-nums;
+  }
+
+  .bt-dot.faded { opacity: 0.28; transform: scale(0.72); transition: opacity 0.15s, transform 0.15s; }
+  .bt-dot { transition: opacity 0.15s, transform 0.15s; }
+
+  /* Leaflet marker/tooltip theming */
+  .bt-dot {
+    width: 16px; height: 16px; border-radius: 50%; border: 2px solid #fff;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.25), 0 1px 3px rgba(0,0,0,0.4);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px; font-weight: 700; color: #fff; line-height: 1;
+  }
+  .bt-dot.selected { outline: 2px solid #000; outline-offset: 2px; }
+  .bt-dot.in-series {
+    box-shadow: 0 0 0 2px var(--surface-1), 0 0 0 4px #000, 0 1px 3px rgba(0,0,0,0.4);
+  }
+  .bt-tooltip .t-series { color: #000; font-weight: 700; margin-top: 3px; }
+  .leaflet-tooltip.bt-tooltip {
+    background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border);
+    border-radius: 8px; font-size: 11px; padding: 7px 9px; box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  }
+  .bt-tooltip .t-title { font-weight: 700; margin-bottom: 3px; }
+  .bt-tooltip .t-meta { color: var(--text-secondary); }
+  .bt-tooltip .t-prec { color: var(--text-muted); font-style: italic; margin-top: 3px; }
+  .bt-tooltip .t-hint { color: var(--text-muted); margin-top: 4px; font-size: 10px; }
+
+  @media (max-width: 760px) {
+    .layout { flex-direction: column; }
+    .sidebar { width: 100%; max-height: 220px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <h1>Bremen Tatkarte</h1>
+      <div class="subtitle">Pressemeldungen der Polizei Bremen, georeferenziert &middot; lokale Version</div>
+    </div>
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <div class="toolbar">
+    <label for="rangeSelect">Zeitraum:</label>
+    <select id="rangeSelect">
+      <option value="all">Alle Daten</option>
+      <option value="365">Letzte 12 Monate</option>
+      <option value="90">Letzte 90 Tage</option>
+      <option value="30">Letzte 30 Tage</option>
+    </select>
+    <div class="sep"></div>
+    <label for="precSelect">Genauigkeit:</label>
+    <select id="precSelect">
+      <option value="all">Adresse + Stadtteil</option>
+      <option value="a">Nur genaue Adresse</option>
+      <option value="d">Nur Stadtteil-Angabe</option>
+    </select>
+    <div class="sep"></div>
+    <span class="zoom-hint">Scrollen zum Zoomen, Ziehen zum Verschieben</span>
+    <button type="button" id="openDetailsBtn" class="details-btn">Detail-Fenster &#8599;</button>
+    <div class="conn-status" id="connStatus">Detail-Fenster: nicht ge&ouml;ffnet</div>
+  </div>
+
+  <div class="layout">
+    <div class="map-panel">
+      <div id="map"></div>
+    </div>
+
+    <div class="sidebar">
+      <h2>Delikttyp</h2>
+      <div id="legendList"></div>
+
+      <h2 style="margin-top:8px">Serien-Explorer</h2>
+      <div class="explorer-row">
+        <label for="distSlider">Max. Entfernung: <b id="distVal"></b></label>
+        <input type="range" id="distSlider" min="100" max="3000" step="50" value="1000">
+      </div>
+      <div class="explorer-row">
+        <label for="daysSlider">Max. Zeitraum: <b id="daysVal"></b></label>
+        <input type="range" id="daysSlider" min="1" max="60" step="1" value="14">
+      </div>
+      <div class="explorer-row">
+        <label for="sizeSlider">Min. Tatenzahl: <b id="sizeVal"></b></label>
+        <input type="range" id="sizeSlider" min="2" max="8" step="1" value="3">
+      </div>
+
+      <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Zus&auml;tzliche Kriterien (nur Taten an Tagen mit):</div>
+      <div id="criteriaBox" class="criteria-box">
+        <label><input type="checkbox" value="weekend"> Wochenende</label>
+        <label><input type="checkbox" value="holiday"> Feiertag</label>
+        <label><input type="checkbox" value="ferien"> Schulferien</label>
+        <label><input type="checkbox" value="festival"> Festival (Freimarkt/Osterwiese/...)</label>
+        <label><input type="checkbox" value="werder"> Werder-Heimspiel</label>
+        <label><input type="checkbox" value="regen"> Regen</label>
+        <label><input type="checkbox" value="monatsanfang"> Monatsanfang</label>
+      </div>
+
+      <div id="liveSeriesCount" class="explorer-count"></div>
+      <div id="seriesInfo" style="font-size:12px; color:var(--text-secondary); line-height:1.5;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var CATS = {
+    "Raub":              { label: "Raub",                 color: "#2a78d6", code: "RA" },
+    "Einbruch":           { label: "Einbruch",             color: "#eb6834", code: "EI" },
+    "Diebstahl":          { label: "Diebstahl",             color: "#1baf7a", code: "DI" },
+    "Drogendelikt":       { label: "Drogendelikt",          color: "#eda100", code: "DR" },
+    "Koerperverletzung":  { label: "Körperverletzung", color: "#e87ba4", code: "KV" },
+    "Waffendelikt":       { label: "Waffendelikt",          color: "#008300", code: "WA" },
+    "Toetungsdelikt":     { label: "Tötungsdelikt",    color: "#4a3aa7", code: "TO" },
+    "Sachbeschaedigung":  { label: "Sachbeschädigung", color: "#e34948", code: "SB" },
+    "Sonstiges":          { label: "Sonstiges",             color: "#898781", code: "SO" }
+  };
+  // dark-mode variants, used only for the swatch styling (map tiles are the
+  // same either way; Leaflet marker colors stay the light-mode hues since
+  // they sit on top of real map imagery, not a themed surface)
+  var isDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+  var channel = ("BroadcastChannel" in window) ? new BroadcastChannel("bremen-tatkarte") : null;
+  var connStatus = document.getElementById("connStatus");
+  if (!channel) connStatus.textContent = "Detail-Fenster: Browser unterstützt das nicht";
+
+  var detailsWin = null;
+  var openBtn = document.getElementById("openDetailsBtn");
+
+  function openDetailsWindow() {
+    if (detailsWin && !detailsWin.closed) {
+      detailsWin.focus();
+      return;
+    }
+    var w = Math.round(window.screen.availWidth * 0.32);
+    var h = window.screen.availHeight;
+    var left = window.screen.availWidth - w;
+    detailsWin = window.open(
+      "details_local.html", "bt-details",
+      "width=" + w + ",height=" + h + ",left=" + left + ",top=0"
+    );
+    if (detailsWin) {
+      openBtn.textContent = "Detail-Fenster offen";
+      openBtn.classList.add("open");
+      connStatus.textContent = "Detail-Fenster: verbunden";
+      connStatus.classList.add("on");
+      var poll = setInterval(function () {
+        if (!detailsWin || detailsWin.closed) {
+          clearInterval(poll);
+          openBtn.textContent = "Detail-Fenster ↗";
+          openBtn.classList.remove("open");
+          connStatus.textContent = "Detail-Fenster: geschlossen";
+          connStatus.classList.remove("on");
+        }
+      }, 1000);
+    } else {
+      connStatus.textContent = "Detail-Fenster: vom Browser blockiert (Popup erlauben)";
+    }
+  }
+
+  openBtn.addEventListener("click", openDetailsWindow);
+  // best-effort auto-open on load -- works in most desktop browsers for a
+  // same-origin window.open fired this early, but popup blockers vary, so
+  // the button above is the guaranteed fallback the user can always click.
+  window.addEventListener("load", function () {
+    setTimeout(openDetailsWindow, 300);
+  });
+
+  function hashJitter(str, ampDeg) {
+    var h = 0;
+    for (var i = 0; i < str.length; i++) { h = (h * 31 + str.charCodeAt(i)) | 0; }
+    var a = ((h & 0xffff) / 0xffff) * Math.PI * 2;
+    var r = (((h >> 16) & 0xffff) / 0xffff) * ampDeg;
+    return [Math.cos(a) * r, Math.sin(a) * r];
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function haversineM(lat1, lon1, lat2, lon2) {
+    var R = 6371000;
+    var p1 = lat1 * Math.PI / 180, p2 = lat2 * Math.PI / 180;
+    var dphi = (lat2 - lat1) * Math.PI / 180;
+    var dlambda = (lon2 - lon1) * Math.PI / 180;
+    var a = Math.sin(dphi / 2) * Math.sin(dphi / 2) +
+      Math.cos(p1) * Math.cos(p2) * Math.sin(dlambda / 2) * Math.sin(dlambda / 2);
+    return 2 * R * Math.asin(Math.sqrt(a));
+  }
+
+  function unionFind(n) {
+    var parent = [];
+    for (var i = 0; i < n; i++) parent.push(i);
+    function find(x) { while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; } return x; }
+    function union(a, b) { var ra = find(a), rb = find(b); if (ra !== rb) parent[ra] = rb; }
+    return { find: find, union: union };
+  }
+
+  // Collapses multiple press releases about the SAME underlying incident
+  // (initial report, "Taeter gefasst" follow-up, a correction, ...) into one
+  // item before clustering -- mirrors src/find_series.py's
+  // dedupe_followups(). Without this, Polizei Bremen's habit of covering
+  // one event in 2-3 separate releases (same category, same date, same
+  // address) would masquerade as a tiny "series" of its own.
+  function dedupeFollowups(items) {
+    var byCategoryDate = {};
+    items.forEach(function (it) {
+      var key = it.d.rawcat + "|" + (it.d.date || "");
+      (byCategoryDate[key] = byCategoryDate[key] || []).push(it);
+    });
+    var kept = [];
+    Object.keys(byCategoryDate).forEach(function (key) {
+      var group = byCategoryDate[key];
+      var uf = unionFind(group.length);
+      for (var a = 0; a < group.length; a++) {
+        for (var b = a + 1; b < group.length; b++) {
+          if (haversineM(group[a].d.lat, group[a].d.lon, group[b].d.lat, group[b].d.lon) <= 30) {
+            uf.union(a, b);
+          }
+        }
+      }
+      var seen = {};
+      for (var i = 0; i < group.length; i++) {
+        var root = uf.find(i);
+        if (!seen[root]) { seen[root] = true; kept.push(group[i]); }
+      }
+    });
+    return kept;
+  }
+
+  // Same chaining idea as src/find_series.py: incidents of the SAME raw
+  // category within maxDistM and maxDays of each other are linked, links
+  // chain transitively, clusters >= minSize are a "possible series". Runs
+  // entirely client-side so the sliders feel instant.
+  function computeLiveClusters(rawItems, maxDistM, maxDays, minSize) {
+    var items = dedupeFollowups(rawItems);
+    var byCategory = {};
+    items.forEach(function (it) {
+      (byCategory[it.d.rawcat] = byCategory[it.d.rawcat] || []).push(it);
+    });
+    var clusters = [];
+    Object.keys(byCategory).forEach(function (cat) {
+      var arr = byCategory[cat].slice().sort(function (a, b) {
+        return (a.d.date || "").localeCompare(b.d.date || "");
+      });
+      var uf = unionFind(arr.length);
+      for (var i = 0; i < arr.length; i++) {
+        for (var j = i + 1; j < arr.length; j++) {
+          var di = new Date(arr[i].d.date), dj = new Date(arr[j].d.date);
+          var dayGap = Math.abs((dj - di) / 86400000);
+          if (dayGap > maxDays) break;
+          var dist = haversineM(arr[i].d.lat, arr[i].d.lon, arr[j].d.lat, arr[j].d.lon);
+          if (dist <= maxDistM) uf.union(i, j);
+        }
+      }
+      var groups = {};
+      for (var k = 0; k < arr.length; k++) {
+        var root = uf.find(k);
+        (groups[root] = groups[root] || []).push(arr[k]);
+      }
+      Object.keys(groups).forEach(function (root) {
+        if (groups[root].length >= minSize) clusters.push(groups[root]);
+      });
+    });
+    return clusters;
+  }
+
+  var map = L.map("map", { zoomControl: true }).setView([53.0858, 8.8139], 12);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: "&copy; OpenStreetMap contributors"
+  }).addTo(map);
+
+  var markers = [];
+  var activeCats = {};
+  Object.keys(CATS).forEach(function (k) { activeCats[k] = true; });
+  var selectedMarker = null;
+
+  var liveClusterLayers = [];  // currently-drawn connecting polylines for the live explorer
+  var currentClusters = [];    // last computed clusters, so a marker click can look up its own cluster
+  var focusedCluster = null;   // the cluster currently isolated on the map, if any
+  var GLOBAL_DATA = null;      // set once loaded, so UI callbacks (buttons) can reach it without re-threading it everywhere
+
+  fetch("map_data.json").then(function (r) { return r.json(); }).then(function (DATA) {
+    GLOBAL_DATA = DATA;
+    buildMarkers(DATA);
+    buildLegend(DATA);
+    applyFilters(DATA);
+    document.getElementById("rangeSelect").addEventListener("change", function () { applyFilters(DATA); });
+    document.getElementById("precSelect").addEventListener("change", function () { applyFilters(DATA); });
+
+    var distSlider = document.getElementById("distSlider");
+    var daysSlider = document.getElementById("daysSlider");
+    var sizeSlider = document.getElementById("sizeSlider");
+    [distSlider, daysSlider, sizeSlider].forEach(function (el) {
+      el.addEventListener("input", function () {
+        if (focusedCluster) { focusedCluster = null; }
+        applyFilters(DATA);
+      });
+    });
+    document.querySelectorAll("#criteriaBox input[type=checkbox]").forEach(function (cb) {
+      cb.addEventListener("change", function () {
+        if (focusedCluster) { focusedCluster = null; }
+        applyFilters(DATA);
+      });
+    });
+    updateExplorer(DATA);
+
+    // click anywhere on the map that isn't a marker/halo (those stop the
+    // event themselves) clears an active series focus
+    map.on("click", function () { if (focusedCluster) exitFocus(DATA); });
+  }).catch(function (err) {
+    document.getElementById("stats").textContent = "Fehler: map_data.json konnte nicht geladen werden (" + err + ")";
+  });
+
+  function clusterOf(id) {
+    for (var i = 0; i < currentClusters.length; i++) {
+      for (var j = 0; j < currentClusters[i].length; j++) {
+        if (currentClusters[i][j].d.id === id) return currentClusters[i];
+      }
+    }
+    return null;
+  }
+
+  function enterFocus(DATA, cluster) {
+    focusedCluster = cluster;
+    var ids = {};
+    cluster.forEach(function (it) { ids[it.d.id] = true; });
+
+    markers.forEach(function (m) {
+      var inCluster = ids[m.data.id];
+      if (inCluster) {
+        if (!map.hasLayer(m.layer)) map.addLayer(m.layer);
+        if (!m.isHalo) {
+          var el = m.layer.getElement && m.layer.getElement();
+          var dotEl = el && el.querySelector(".bt-dot");
+          if (dotEl) dotEl.classList.remove("faded");
+        }
+      } else if (map.hasLayer(m.layer)) {
+        map.removeLayer(m.layer);
+      }
+    });
+
+    liveClusterLayers.forEach(function (l) { map.removeLayer(l); });
+    var sorted = cluster.slice().sort(function (a, b) { return (a.d.date || "").localeCompare(b.d.date || ""); });
+    var latlngs = sorted.map(function (it) { return [it.d.lat, it.d.lon]; });
+    liveClusterLayers = [L.polyline(latlngs, { color: "#000", weight: 2, dashArray: "6 5", opacity: 0.85 }).addTo(map)];
+    if (latlngs.length > 1) map.fitBounds(latlngs, { padding: [60, 60] });
+
+    renderFocusPanel(sorted);
+  }
+
+  function exitFocus(DATA) {
+    focusedCluster = null;
+    applyFilters(DATA);  // restores normal visibility + re-fades/re-clusters per current sliders
+  }
+
+  function renderFocusPanel(sorted) {
+    var box = document.getElementById("seriesInfo");
+    var cat = CATS[sorted[0].d.cat] || CATS["Sonstiges"];
+    var html = '<div style="margin-bottom:6px;"><button type="button" id="exitFocusBtn" ' +
+      'style="font-size:11px; padding:3px 8px; border-radius:6px; border:1px solid var(--border); ' +
+      'background:var(--page-plane); color:var(--text-primary); cursor:pointer;">&larr; Zurück</button></div>';
+    html += '<div style="font-weight:700; margin-bottom:6px;">' + sorted.length + 'x ' + escapeHtml(cat.label) + '</div>';
+    for (var i = 0; i < sorted.length; i++) {
+      var d = sorted[i].d;
+      html += '<div style="border-top:1px solid var(--border); padding:6px 0;">';
+      html += '<div style="font-weight:600;">' + escapeHtml(d.title) + '</div>';
+      html += '<div style="color:var(--text-muted);">' + escapeHtml(d.date || "") + ' · ' + escapeHtml(d.ort || d.stadtteil || "") + '</div>';
+      if (i > 0) {
+        var prev = sorted[i - 1].d;
+        var dayGap = Math.round(Math.abs((new Date(d.date) - new Date(prev.date)) / 86400000));
+        var dist = Math.round(haversineM(prev.lat, prev.lon, d.lat, d.lon));
+        html += '<div style="color:var(--text-muted); font-style:italic;">' +
+          dayGap + ' Tag' + (dayGap === 1 ? "" : "e") + ' und ' + dist + 'm nach der vorherigen Tat</div>';
+      }
+      html += '<a href="message_local.html?id=' + encodeURIComponent(d.id) + '" target="_blank" rel="noopener" ' +
+        'style="font-size:11px; color:var(--text-primary);">Meldung öffnen ↗</a>';
+      html += '</div>';
+    }
+    box.innerHTML = html;
+    document.getElementById("exitFocusBtn").addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      exitFocus(GLOBAL_DATA);
+    });
+  }
+
+  // Recomputes which incidents currently chain into a possible series under
+  // the slider settings, fades everything else, and draws a connecting line
+  // per cluster -- this is the live, explorable twin of src/find_series.py,
+  // running entirely in the browser so it feels instant as you drag.
+  function updateExplorer(DATA) {
+    if (focusedCluster) return;  // a focused series owns the view until explicitly exited
+    var maxDist = Number(document.getElementById("distSlider").value);
+    var maxDays = Number(document.getElementById("daysSlider").value);
+    var minSize = Number(document.getElementById("sizeSlider").value);
+    document.getElementById("distVal").textContent = maxDist + " m";
+    document.getElementById("daysVal").textContent = maxDays + " Tage";
+    document.getElementById("sizeVal").textContent = minSize + "+";
+
+    var activeCriteria = [];
+    document.querySelectorAll("#criteriaBox input[type=checkbox]:checked").forEach(function (cb) {
+      activeCriteria.push(cb.value);
+    });
+
+    var addressItems = markers.filter(function (m) {
+      if (m.isHalo || !m.visible || m.data.prec !== "a") return false;
+      if (activeCriteria.length === 0) return true;
+      if (!m.data.x) return false;  // no external-feature data for this date -- can't confirm, so excluded
+      return activeCriteria.every(function (key) { return m.data.x[key]; });
+    }).map(function (m) { return { marker: m.layer, d: m.data }; });
+    var clusters = computeLiveClusters(addressItems, maxDist, maxDays, minSize);
+    currentClusters = clusters;
+
+    var matched = {};
+    clusters.forEach(function (cluster) {
+      cluster.forEach(function (it) { matched[it.d.id] = true; });
+    });
+
+    // fade every non-halo dot that isn't part of a current match -- including
+    // district-precision ones, which can never match (not address-precise
+    // enough to cluster) and so should always look de-emphasized here too.
+    markers.forEach(function (m) {
+      if (m.isHalo || !m.visible) return;
+      var el = m.layer.getElement && m.layer.getElement();
+      var dotEl = el && el.querySelector(".bt-dot");
+      if (dotEl) dotEl.classList.toggle("faded", !matched[m.data.id]);
+    });
+
+    liveClusterLayers.forEach(function (l) { map.removeLayer(l); });
+    liveClusterLayers = clusters.map(function (cluster) {
+      var sorted = cluster.slice().sort(function (a, b) { return (a.d.date || "").localeCompare(b.d.date || ""); });
+      var latlngs = sorted.map(function (it) { return [it.d.lat, it.d.lon]; });
+      return L.polyline(latlngs, { color: "#000", weight: 2, dashArray: "6 5", opacity: 0.75 }).addTo(map);
+    });
+
+    var totalTaten = clusters.reduce(function (sum, c) { return sum + c.length; }, 0);
+    document.getElementById("liveSeriesCount").textContent =
+      clusters.length + " mögliche Serie" + (clusters.length === 1 ? "" : "n") +
+      " — " + totalTaten + " Taten betroffen";
+
+    var box = document.getElementById("seriesInfo");
+    if (clusters.length === 0) {
+      box.textContent = "Mit diesen Kriterien nichts gefunden.";
+    } else {
+      var html = "";
+      clusters.slice().sort(function (a, b) { return b.length - a.length; }).forEach(function (cluster) {
+        var sorted = cluster.slice().sort(function (a, b) { return (a.d.date || "").localeCompare(b.d.date || ""); });
+        var cat = CATS[sorted[0].d.cat] || CATS["Sonstiges"];
+        html += '<span style="color:' + cat.color + '; font-weight:700;">&#9679;</span> ' +
+          sorted.length + 'x ' + escapeHtml(cat.label) + ' (' +
+          escapeHtml(sorted[0].d.date || "") + ' bis ' + escapeHtml(sorted[sorted.length - 1].d.date || "") +
+          ')<br>';
+      });
+      box.innerHTML = html;
+    }
+  }
+
+  function buildMarkers(DATA) {
+    // Halo circles for same-district incidents sit at the exact same centroid
+    // and stack on top of each other -- many faint overlapping fills add up
+    // to a solid block (very visible once zoomed into a dense Stadtteil).
+    // Count how many incidents share a (location, category) so each one's
+    // opacity can be scaled down to compensate, keeping the STACKED result
+    // equal to the intended target opacity no matter how many overlap.
+    var haloGroupCount = {};
+    DATA.forEach(function (d) {
+      if (d.prec !== "d") return;
+      var key = d.lat + "," + d.lon + "|" + d.cat;
+      haloGroupCount[key] = (haloGroupCount[key] || 0) + 1;
+    });
+    var HALO_FILL_TARGET = 0.05, HALO_BORDER_TARGET = 0.18;
+
+    DATA.forEach(function (d, idx) {
+      var cat = CATS[d.cat] || CATS["Sonstiges"];
+      var lat = d.lat, lon = d.lon;
+
+      var tipHtml =
+        '<div class="t-title">' + escapeHtml(d.title) + '</div>' +
+        '<div class="t-meta">' + escapeHtml(cat.label) + ' · ' + escapeHtml(d.date || "") + '</div>' +
+        '<div class="t-meta">' + escapeHtml(d.ort || d.stadtteil || "") + '</div>' +
+        '<div class="t-prec">' + (d.prec === "a" ? "genaue Adresse" : "nur Stadtteil-Angabe (ungefähre Lage)") + '</div>' +
+        '<div class="t-hint">Klicken für Details im Seitenfenster</div>';
+
+      function selectThis(markerForHighlight, ev) {
+        if (ev) L.DomEvent.stop(ev);
+        if (selectedMarker) {
+          var prevEl = selectedMarker.getElement && selectedMarker.getElement();
+          var prevDot = prevEl && prevEl.querySelector(".bt-dot");
+          if (prevDot) prevDot.classList.remove("selected");
+        }
+        selectedMarker = markerForHighlight;
+        var el = markerForHighlight.getElement && markerForHighlight.getElement();
+        var dotEl = el && el.querySelector(".bt-dot");
+        if (dotEl) dotEl.classList.add("selected");
+        sendToDetails(d, cat);
+
+        if (!focusedCluster) {
+          var cluster = clusterOf(d.id);
+          if (cluster) enterFocus(GLOBAL_DATA, cluster);
+        }
+      }
+
+      if (d.prec === "d") {
+        var j = hashJitter(d.title + d.date + idx, 0.006);
+        lat += j[0]; lon += j[1];
+        var n = haloGroupCount[d.lat + "," + d.lon + "|" + d.cat] || 1;
+        // solve a_single such that 1-(1-a_single)^n == target, so n stacked
+        // layers still compose to the intended target opacity, not n times it
+        var fillOp = 1 - Math.pow(1 - HALO_FILL_TARGET, 1 / n);
+        var borderOp = 1 - Math.pow(1 - HALO_BORDER_TARGET, 1 / n);
+        var halo = L.circle([d.lat, d.lon], {
+          radius: 450, color: cat.color, weight: 1, opacity: borderOp,
+          fillColor: cat.color, fillOpacity: fillOp
+        }).addTo(map);
+        halo.bindTooltip(tipHtml, { className: "bt-tooltip", sticky: true });
+        halo.on("click", function (ev) { selectThis(marker, ev); });
+        markers.push({ layer: halo, data: d, isHalo: true, visible: true });
+      }
+
+      var icon = L.divIcon({
+        className: "", html: '<div class="bt-dot" style="background:' + cat.color + '">' + cat.code + '</div>',
+        iconSize: [16, 16], iconAnchor: [8, 8]
+      });
+      var marker = L.marker([lat, lon], { icon: icon }).addTo(map);
+      marker.bindTooltip(tipHtml, { className: "bt-tooltip", direction: "top", offset: [0, -6] });
+      marker.on("click", function (ev) { selectThis(marker, ev); });
+
+      markers.push({ layer: marker, data: d, isHalo: false, visible: true });
+    });
+  }
+
+  function sendToDetails(d, cat) {
+    if (!channel) return;
+    channel.postMessage({ type: "select", incident: d, catLabel: cat.label, catColor: cat.color });
+    connStatus.textContent = "Detail-Fenster: Auswahl gesendet (" + new Date().toLocaleTimeString("de-DE") + ")";
+    connStatus.classList.add("on");
+  }
+
+  function buildLegend(DATA) {
+    var legendList = document.getElementById("legendList");
+    var counts = {};
+    Object.keys(CATS).forEach(function (k) { counts[k] = 0; });
+    DATA.forEach(function (d) { counts[d.cat] = (counts[d.cat] || 0) + 1; });
+
+    Object.keys(CATS).forEach(function (key) {
+      var cat = CATS[key];
+      var row = document.createElement("div");
+      row.className = "legend-row";
+      row.innerHTML =
+        '<span class="legend-swatch" style="background:' + cat.color + '">' + cat.code + '</span>' +
+        '<span class="legend-label">' + cat.label + '</span>' +
+        '<span class="legend-count">' + (counts[key] || 0) + '</span>';
+      row.addEventListener("click", function () {
+        activeCats[key] = !activeCats[key];
+        row.classList.toggle("off", !activeCats[key]);
+        applyFilters(DATA);
+      });
+      legendList.appendChild(row);
+    });
+  }
+
+  function applyFilters(DATA) {
+    focusedCluster = null;
+    var rangeVal = document.getElementById("rangeSelect").value;
+    var precVal = document.getElementById("precSelect").value;
+    var cutoff = null;
+    if (rangeVal !== "all") {
+      var dt = new Date();
+      dt.setDate(dt.getDate() - parseInt(rangeVal, 10));
+      cutoff = dt;
+    }
+    var visible = 0;
+    var visibleIds = {};
+    markers.forEach(function (m) {
+      var ok = activeCats[m.data.cat];
+      if (ok && cutoff && m.data.date) {
+        var dd = new Date(m.data.date);
+        if (dd < cutoff) ok = false;
+      }
+      if (ok && precVal !== "all" && m.data.prec !== precVal) ok = false;
+      m.visible = ok;
+      if (ok) {
+        if (!map.hasLayer(m.layer)) map.addLayer(m.layer);
+        if (!m.isHalo) visibleIds[m.data.id] = true;
+      } else {
+        if (map.hasLayer(m.layer)) map.removeLayer(m.layer);
+      }
+    });
+    visible = Object.keys(visibleIds).length;
+    if (document.getElementById("distSlider")) updateExplorer(DATA);
+    document.getElementById("stats").textContent = visible + " von " + DATA.length + " Vorfällen angezeigt";
+  }
+})();
+</script>
+</body>
+</html>
