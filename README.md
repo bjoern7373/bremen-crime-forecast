@@ -224,6 +224,26 @@ captured before Polizei Bremen deletes them. Logs go to `logs/daily.log`.
 Manage it with `schtasks /query /tn BremenCrimeForecastDaily` or via Task
 Scheduler GUI (`taskschd.msc`).
 
+After exporting, the task also copies `assets/map_data.json` into `docs/`
+and pushes to GitHub, which auto-publishes the updated data to the public
+site below.
+
+## Public site (GitHub Pages)
+
+The same map, installable as a PWA (works on Android/iOS/desktop, no local
+server, no Python needed), is published from `docs/` at:
+
+    https://bjoern7373.github.io/bremen-crime-forecast/
+
+Only the *hosting* lives in the cloud — the scraping step must stay on a
+residential connection. Polizei Bremen's site returns 403 for requests
+coming from GitHub Actions' (and presumably other cloud providers') IP
+ranges, confirmed by testing; a scheduled Actions workflow attempting the
+full pipeline fails at the scrape step for this reason. So the public site
+is only as fresh as the last local `run_daily.bat` run and its push, same
+cadence as before, just now viewable from anywhere instead of only on this
+PC.
+
 ## Ethics / scope note
 
 This project only reads already-public press releases and does not attempt
