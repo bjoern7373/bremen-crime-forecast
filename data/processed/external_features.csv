@@ -701,6 +701,6 @@ date,weekday,is_weekend,is_public_holiday,public_holiday_name,school_holiday_nam
 2026-09-30,2,False,False,,,,False,False,25.3,14.9,0.0,16.4,19.066666666666666
 2026-10-01,3,False,False,,,,False,True,22.0,16.4,18.3,16.6,19.016666666666666
 2026-10-02,4,False,False,,,,False,True,19.5,12.9,2.9,9.4,18.983333333333334
-2026-10-03,5,True,True,Tag der Deutschen Einheit,,,False,True,20.2,10.2,0.0,6.2,18.95
+2026-10-03,5,True,True,Tag der Deutschen Einheit,,,False,True,19.9,8.0,0.0,6.3,18.933333333333334
 2026-10-04,6,True,False,,,,False,False,18.7,10.8,0.0,6.8,18.9
 2026-10-05,0,False,False,,,,False,False,20.5,9.5,0.0,13.8,18.866666666666667
