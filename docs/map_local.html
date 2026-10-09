@@ -472,8 +472,13 @@
     var windows = [7, 30, 90];
     var counts = { 7: 0, 30: 0, 90: 0 };
     var catCounts90 = {};
+    var catCountsAll = {};
+    var totalAll = 0;
     DATA.forEach(function (m) {
-      if (m.stadtteil !== d.stadtteil || !m.date) return;
+      if (m.stadtteil !== d.stadtteil) return;
+      catCountsAll[m.cat] = (catCountsAll[m.cat] || 0) + 1;
+      totalAll++;
+      if (!m.date) return;
       var days = Math.round((now - new Date(m.date)) / 86400000);
       if (days < 0 || days > 90) return;
       windows.forEach(function (w) { if (days <= w) counts[w]++; });
@@ -485,7 +490,22 @@
       .map(function (c) { return catCounts90[c] + "x " + escapeHtml((CATS[c] || {}).label || c); })
       .join(", ");
 
-    return "<b>Prognose: " + escapeHtml(d.stadtteil) + "</b><br>Rang " + d.rank + " von 23 &middot; erh&ouml;htes Risiko<br>" +
+    // "was statistisch als nächste Tat zu erwarten ist" -- simplest honest
+    // answer: whichever Delikttyp has historically been most common in this
+    // Stadtteil (all-time, not just the last 90 days, for a stabler base
+    // rate), stated as its share of all Taten there.
+    var topCat = null, topCount = 0;
+    Object.keys(catCountsAll).forEach(function (c) {
+      if (catCountsAll[c] > topCount) { topCount = catCountsAll[c]; topCat = c; }
+    });
+    var nextLikely = "";
+    if (topCat && totalAll > 0) {
+      var pct = Math.round(100 * topCount / totalAll);
+      nextLikely = " &middot; am wahrscheinlichsten als n&auml;chstes: <b>" +
+        escapeHtml((CATS[topCat] || {}).label || topCat) + "</b> (" + pct + "% aller Taten hier)";
+    }
+
+    return "<b>Prognose: " + escapeHtml(d.stadtteil) + "</b><br>Rang " + d.rank + " von 23 &middot; erh&ouml;htes Risiko" + nextLikely + "<br>" +
       "<div style=\"margin-top:4px;\">Letzte 7 Tage: <b>" + counts[7] + "</b> Taten &middot; " +
       "30 Tage: <b>" + counts[30] + "</b> &middot; 90 Tage: <b>" + counts[90] + "</b></div>" +
       (catLine ? "<div style=\"margin-top:2px;\">Davon (90 Tage): " + catLine + "</div>" : "") +
