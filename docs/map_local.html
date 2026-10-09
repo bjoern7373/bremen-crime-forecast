@@ -405,6 +405,13 @@
     attribution: "&copy; OpenStreetMap contributors"
   }).addTo(map);
 
+  // Sits BELOW the default overlayPane (where incident dots + Stadtteil-halos
+  // live) so the Prognose layer never steals hover from them -- the mouse
+  // "sees" whatever is topmost at that pixel: a dot first, then a category
+  // halo, and only the plain red wash where neither exists.
+  map.createPane("forecastPane");
+  map.getPane("forecastPane").style.zIndex = 350;
+
   var markers = [];
   var activeCats = {};
   Object.keys(CATS).forEach(function (k) { activeCats[k] = true; });
@@ -414,6 +421,76 @@
   var currentClusters = [];    // last computed clusters, so a marker click can look up its own cluster
   var focusedCluster = null;   // the cluster currently isolated on the map, if any
   var GLOBAL_DATA = null;      // set once loaded, so UI callbacks (buttons) can reach it without re-threading it everywhere
+
+  var forecastLayers = [];
+
+  // Forecast overlay: same exp_decay + dow_seasonal hotspot models already
+  // validated in src/backtest.py (PAI ~1.3-1.4, i.e. ~30-40% better than
+  // random guessing), run once more on today's data to flag which Stadtteile
+  // are currently elevated-risk. A statistical tendency, not a prediction of
+  // individual events. Built AFTER incidents load (needs DATA for the
+  // hover breakdown) -- loaded tolerantly so an older package without
+  // forecast.json just silently shows no overlay instead of breaking.
+  function buildForecastLayer(DATA, fc) {
+    var info = document.getElementById("forecastInfo");
+    info.innerHTML =
+      "Prognose f&uuml;r " + escapeHtml(fc.generated_for_date) + " (" + fc.horizon_days + " Tage), Top " + fc.k + " von 23 Stadtteilen.<br>" +
+      "<span style=\"font-style:italic;\">" + escapeHtml(fc.model_note) + "</span>";
+
+    var elevated = fc.districts.filter(function (d) { return d.elevated; });
+    var maxScore = elevated.reduce(function (m, d) { return Math.max(m, d.score); }, 0.0001);
+    var now = new Date();
+
+    elevated.forEach(function (d) {
+      var intensity = d.score / maxScore;  // 0..1 within the elevated set, rank 1 = most vivid
+      var circle = L.circle([d.lat, d.lon], {
+        radius: 500 + 900 * intensity,
+        color: "#dc2626", weight: 2, opacity: 0.15 + 0.35 * intensity,
+        fillColor: "#dc2626", fillOpacity: 0.05 + 0.12 * intensity,
+        interactive: true, pane: "forecastPane"
+      });
+      circle.bindTooltip(forecastTooltipHtml(DATA, d, now), { className: "bt-tooltip", sticky: true });
+      forecastLayers.push(circle);
+    });
+
+    function applyForecastVisibility() {
+      var show = document.getElementById("forecastToggle").checked;
+      forecastLayers.forEach(function (c) {
+        if (show) { if (!map.hasLayer(c)) c.addTo(map); }
+        else { if (map.hasLayer(c)) map.removeLayer(c); }
+      });
+    }
+    applyForecastVisibility();
+    document.getElementById("forecastToggle").addEventListener("change", applyForecastVisibility);
+  }
+
+  // "zeitliche Eingrenzung und was passiert": how many Taten in this
+  // Stadtteil in the last 7/30/90 days, and which Delikttypen make up that
+  // count -- the actual local evidence behind the district's risk score,
+  // one hover away instead of a black-box rank number.
+  function forecastTooltipHtml(DATA, d, now) {
+    var windows = [7, 30, 90];
+    var counts = { 7: 0, 30: 0, 90: 0 };
+    var catCounts90 = {};
+    DATA.forEach(function (m) {
+      if (m.stadtteil !== d.stadtteil || !m.date) return;
+      var days = Math.round((now - new Date(m.date)) / 86400000);
+      if (days < 0 || days > 90) return;
+      windows.forEach(function (w) { if (days <= w) counts[w]++; });
+      catCounts90[m.cat] = (catCounts90[m.cat] || 0) + 1;
+    });
+    var catLine = Object.keys(catCounts90)
+      .sort(function (a, b) { return catCounts90[b] - catCounts90[a]; })
+      .slice(0, 4)
+      .map(function (c) { return catCounts90[c] + "x " + escapeHtml((CATS[c] || {}).label || c); })
+      .join(", ");
+
+    return "<b>Prognose: " + escapeHtml(d.stadtteil) + "</b><br>Rang " + d.rank + " von 23 &middot; erh&ouml;htes Risiko<br>" +
+      "<div style=\"margin-top:4px;\">Letzte 7 Tage: <b>" + counts[7] + "</b> Taten &middot; " +
+      "30 Tage: <b>" + counts[30] + "</b> &middot; 90 Tage: <b>" + counts[90] + "</b></div>" +
+      (catLine ? "<div style=\"margin-top:2px;\">Davon (90 Tage): " + catLine + "</div>" : "") +
+      "<div style=\"font-size:11px; color:var(--text-muted); margin-top:4px;\">Statistische Tendenz (siehe Hinweis in der Seitenleiste), keine Vorhersage einzelner Taten.</div>";
+  }
 
   fetch("map_data.json").then(function (r) { return r.json(); }).then(function (DATA) {
     GLOBAL_DATA = DATA;
@@ -443,53 +520,14 @@
     // click anywhere on the map that isn't a marker/halo (those stop the
     // event themselves) clears an active series focus
     map.on("click", function () { if (focusedCluster) exitFocus(DATA); });
+
+    fetch("forecast.json").then(function (r) { return r.json(); }).then(function (fc) {
+      buildForecastLayer(DATA, fc);
+    }).catch(function () {
+      document.getElementById("forecastInfo").textContent = "Keine Prognosedaten verfügbar.";
+    });
   }).catch(function (err) {
     document.getElementById("stats").textContent = "Fehler: map_data.json konnte nicht geladen werden (" + err + ")";
-  });
-
-  // Forecast overlay: same exp_decay + dow_seasonal hotspot models already
-  // validated in src/backtest.py (PAI ~1.3-1.4, i.e. ~30-40% better than
-  // random guessing), run once more on today's data to flag which Stadtteile
-  // are currently elevated-risk. A statistical tendency, not a prediction of
-  // individual events -- loaded separately so an older package without
-  // forecast.json just silently shows no overlay instead of breaking.
-  var forecastLayers = [];
-  fetch("forecast.json").then(function (r) { return r.json(); }).then(function (fc) {
-    var info = document.getElementById("forecastInfo");
-    info.innerHTML =
-      "Prognose f&uuml;r " + escapeHtml(fc.generated_for_date) + " (" + fc.horizon_days + " Tage), Top " + fc.k + " von 23 Stadtteilen.<br>" +
-      "<span style=\"font-style:italic;\">" + escapeHtml(fc.model_note) + "</span>";
-
-    var elevated = fc.districts.filter(function (d) { return d.elevated; });
-    var maxScore = elevated.reduce(function (m, d) { return Math.max(m, d.score); }, 0.0001);
-
-    elevated.forEach(function (d) {
-      var intensity = d.score / maxScore;  // 0..1 within the elevated set, rank 1 = most vivid
-      var circle = L.circle([d.lat, d.lon], {
-        radius: 500 + 900 * intensity,
-        color: "#dc2626", weight: 2, opacity: 0.15 + 0.35 * intensity,
-        fillColor: "#dc2626", fillOpacity: 0.05 + 0.12 * intensity,
-        interactive: false, pane: "overlayPane"
-      });
-      circle.bindTooltip(
-        "<b>Prognose: " + escapeHtml(d.stadtteil) + "</b><br>Rang " + d.rank + " von 23 &middot; erh&ouml;htes Risiko" +
-        "<div style=\"font-size:11px; color:var(--text-muted); margin-top:2px;\">Statistische Tendenz (siehe Hinweis in der Seitenleiste), keine Vorhersage einzelner Taten.</div>",
-        { className: "bt-tooltip", sticky: true }
-      );
-      forecastLayers.push(circle);
-    });
-
-    function applyForecastVisibility() {
-      var show = document.getElementById("forecastToggle").checked;
-      forecastLayers.forEach(function (c) {
-        if (show) { if (!map.hasLayer(c)) c.addTo(map); }
-        else { if (map.hasLayer(c)) map.removeLayer(c); }
-      });
-    }
-    applyForecastVisibility();
-    document.getElementById("forecastToggle").addEventListener("change", applyForecastVisibility);
-  }).catch(function () {
-    document.getElementById("forecastInfo").textContent = "Keine Prognosedaten verfügbar.";
   });
 
   // Aggregate Landgericht Bremen stats (src/match_verdicts.py) -- deliberately
