@@ -185,9 +185,17 @@ centroid, with a small deterministic jitter so multiple district-only
 incidents in the same Stadtteil fan out instead of stacking exactly on top
 of each other. Both carry a 2-letter category monogram so identity never
 relies on color alone (colorblind-safe) -- see `src/export_map_data.py` for
-the 8-color + grey "Sonstiges" category scheme (the 14 raw `classify.py`
+the 10-color + grey "Sonstiges" category scheme (the 14 raw `classify.py`
 categories folded down, since a scatter/map view can't cleanly support more
-than ~8 simultaneous hues per the dataviz palette rules).
+than ~10-ish simultaneous hues per the dataviz palette rules). Fahrzeugaufbruch
+and Sexualdelikt get their own legend slot despite low current volume --
+deliberately, since both are highly relevant to the public and this way a
+future rise in either shows up immediately instead of being buried in
+"Sonstiges". Verkehrsunfall/Brandstiftung/Hasskriminalitaet still fold into
+"Sonstiges" by color, but every incident's *real* category (`rawcat`) is
+always shown in its own tooltip/text regardless of which legend color it's
+grouped under -- "Sonstiges" in the legend is a grouping, never something an
+individual incident's own text hides behind.
 
 **Keeping it current**: `run_daily.bat` now also re-geocodes new addresses
 and re-exports `map_data.json` every morning, so the underlying files stay

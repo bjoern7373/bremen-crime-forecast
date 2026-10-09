@@ -10,9 +10,15 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parent.parent
 PROCESSED_DIR = ROOT / "data" / "processed"
 
-# Fold the 14 fine-grained classify.py categories into 8 colored headline
+# Fold the 14 fine-grained classify.py categories into 10 colored headline
 # categories + "Sonstiges" (grey catch-all) -- see src/classify.py for the
 # source categories. Keys here must match classify.py's category strings.
+# Fahrzeugaufbruch and Sexualdelikt get their own slot despite low current
+# volume -- too relevant to the public to hide inside "Sonstiges", and this
+# way a future rise in either is visible immediately rather than buried.
+# Verkehrsunfall/Brandstiftung/Hasskriminalitaet stay folded for now; every
+# incident's true rawcat is still shown in its own tooltip/text regardless
+# of which legend color it's grouped under (see RAW_LABELS client-side).
 CATEGORY_MAP = {
     "Raub": "Raub",
     "Einbruch": "Einbruch",
@@ -22,12 +28,12 @@ CATEGORY_MAP = {
     "Waffendelikt": "Waffendelikt",
     "Toetungsdelikt": "Toetungsdelikt",
     "Sachbeschaedigung": "Sachbeschaedigung",
-    # everything else folds into Sonstiges:
+    "Fahrzeugaufbruch": "Fahrzeugaufbruch",
+    "Sexualdelikt": "Sexualdelikt",
+    # still folds into Sonstiges:
     "Verkehrsunfall": "Sonstiges",
     "Brandstiftung": "Sonstiges",
     "Hasskriminalitaet": "Sonstiges",
-    "Fahrzeugaufbruch": "Sonstiges",
-    "Sexualdelikt": "Sonstiges",
     "Sonstiges": "Sonstiges",
 }
 

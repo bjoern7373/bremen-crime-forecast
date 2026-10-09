@@ -246,7 +246,24 @@
     "Waffendelikt":       { label: "Waffendelikt",          color: "#008300", code: "WA" },
     "Toetungsdelikt":     { label: "Tötungsdelikt",    color: "#4a3aa7", code: "TO" },
     "Sachbeschaedigung":  { label: "Sachbeschädigung", color: "#e34948", code: "SB" },
+    "Fahrzeugaufbruch":   { label: "Fahrzeugaufbruch",      color: "#6366f1", code: "FA" },
+    "Sexualdelikt":       { label: "Sexualdelikt",          color: "#0ea5e9", code: "SX" },
     "Sonstiges":          { label: "Sonstiges",             color: "#898781", code: "SO" }
+  };
+  // True classify.py category for every incident, independent of which
+  // legend color it's grouped under -- used so the ACTUAL offense always
+  // shows in tooltips/text (d.rawcat), even for the three types
+  // (Verkehrsunfall/Brandstiftung/Hasskriminalitaet) still folded into the
+  // grey "Sonstiges" legend slot. "Was verbirgt sich dahinter" should never
+  // require guessing.
+  var RAW_LABELS = {
+    "Raub": "Raub", "Einbruch": "Einbruch", "Diebstahl": "Diebstahl",
+    "Drogendelikt": "Drogendelikt", "Koerperverletzung": "Körperverletzung",
+    "Waffendelikt": "Waffendelikt", "Toetungsdelikt": "Tötungsdelikt",
+    "Sachbeschaedigung": "Sachbeschädigung", "Fahrzeugaufbruch": "Fahrzeugaufbruch",
+    "Sexualdelikt": "Sexualdelikt", "Verkehrsunfall": "Verkehrsunfall",
+    "Brandstiftung": "Brandstiftung", "Hasskriminalitaet": "Hasskriminalität",
+    "Sonstiges": "Sonstiges"
   };
   // dark-mode variants, used only for the swatch styling (map tiles are the
   // same either way; Leaflet marker colors stay the light-mode hues since
@@ -476,18 +493,19 @@
     var totalAll = 0;
     DATA.forEach(function (m) {
       if (m.stadtteil !== d.stadtteil) return;
-      catCountsAll[m.cat] = (catCountsAll[m.cat] || 0) + 1;
+      var realCat = m.rawcat || m.cat;
+      catCountsAll[realCat] = (catCountsAll[realCat] || 0) + 1;
       totalAll++;
       if (!m.date) return;
       var days = Math.round((now - new Date(m.date)) / 86400000);
       if (days < 0 || days > 90) return;
       windows.forEach(function (w) { if (days <= w) counts[w]++; });
-      catCounts90[m.cat] = (catCounts90[m.cat] || 0) + 1;
+      catCounts90[realCat] = (catCounts90[realCat] || 0) + 1;
     });
     var catLine = Object.keys(catCounts90)
       .sort(function (a, b) { return catCounts90[b] - catCounts90[a]; })
       .slice(0, 4)
-      .map(function (c) { return catCounts90[c] + "x " + escapeHtml((CATS[c] || {}).label || c); })
+      .map(function (c) { return catCounts90[c] + "x " + escapeHtml(RAW_LABELS[c] || c); })
       .join(", ");
 
     // "was statistisch als nächste Tat zu erwarten ist" -- simplest honest
@@ -502,7 +520,7 @@
     if (topCat && totalAll > 0) {
       var pct = Math.round(100 * topCount / totalAll);
       nextLikely = " &middot; am wahrscheinlichsten als n&auml;chstes: <b>" +
-        escapeHtml((CATS[topCat] || {}).label || topCat) + "</b> (" + pct + "% aller Taten hier)";
+        escapeHtml(RAW_LABELS[topCat] || topCat) + "</b> (" + pct + "% aller Taten hier)";
     }
 
     return "<b>Prognose: " + escapeHtml(d.stadtteil) + "</b><br>Rang " + d.rank + " von 23 &middot; erh&ouml;htes Risiko" + nextLikely + "<br>" +
@@ -613,11 +631,11 @@
 
   function renderFocusPanel(sorted) {
     var box = document.getElementById("seriesInfo");
-    var cat = CATS[sorted[0].d.cat] || CATS["Sonstiges"];
+    var realLabel = RAW_LABELS[sorted[0].d.rawcat] || (CATS[sorted[0].d.cat] || CATS["Sonstiges"]).label;
     var html = '<div style="margin-bottom:6px;"><button type="button" id="exitFocusBtn" ' +
       'style="font-size:11px; padding:3px 8px; border-radius:6px; border:1px solid var(--border); ' +
       'background:var(--page-plane); color:var(--text-primary); cursor:pointer;">&larr; Zurück</button></div>';
-    html += '<div style="font-weight:700; margin-bottom:6px;">' + sorted.length + 'x ' + escapeHtml(cat.label) + '</div>';
+    html += '<div style="font-weight:700; margin-bottom:6px;">' + sorted.length + 'x ' + escapeHtml(realLabel) + '</div>';
     for (var i = 0; i < sorted.length; i++) {
       var d = sorted[i].d;
       html += '<div style="border-top:1px solid var(--border); padding:6px 0;">';
@@ -703,8 +721,9 @@
       clusters.slice().sort(function (a, b) { return b.length - a.length; }).forEach(function (cluster) {
         var sorted = cluster.slice().sort(function (a, b) { return (a.d.date || "").localeCompare(b.d.date || ""); });
         var cat = CATS[sorted[0].d.cat] || CATS["Sonstiges"];
+        var realLabel = RAW_LABELS[sorted[0].d.rawcat] || cat.label;
         html += '<span style="color:' + cat.color + '; font-weight:700;">&#9679;</span> ' +
-          sorted.length + 'x ' + escapeHtml(cat.label) + ' (' +
+          sorted.length + 'x ' + escapeHtml(realLabel) + ' (' +
           escapeHtml(sorted[0].d.date || "") + ' bis ' + escapeHtml(sorted[sorted.length - 1].d.date || "") +
           ')<br>';
       });
@@ -729,11 +748,12 @@
 
     DATA.forEach(function (d, idx) {
       var cat = CATS[d.cat] || CATS["Sonstiges"];
+      var realLabel = RAW_LABELS[d.rawcat] || cat.label;
       var lat = d.lat, lon = d.lon;
 
       var tipHtml =
         '<div class="t-title">' + escapeHtml(d.title) + '</div>' +
-        '<div class="t-meta">' + escapeHtml(cat.label) + ' · ' + escapeHtml(d.date || "") + '</div>' +
+        '<div class="t-meta">' + escapeHtml(realLabel) + ' · ' + escapeHtml(d.date || "") + '</div>' +
         '<div class="t-meta">' + escapeHtml(d.ort || d.stadtteil || "") + '</div>' +
         '<div class="t-prec">' + (d.prec === "a" ? "genaue Adresse" : "nur Stadtteil-Angabe (ungefähre Lage)") + '</div>' +
         '<div class="t-hint">Klicken für Details im Seitenfenster</div>';
@@ -749,7 +769,7 @@
         var el = markerForHighlight.getElement && markerForHighlight.getElement();
         var dotEl = el && el.querySelector(".bt-dot");
         if (dotEl) dotEl.classList.add("selected");
-        sendToDetails(d, cat);
+        sendToDetails(d, cat, realLabel);
 
         if (!focusedCluster) {
           var cluster = clusterOf(d.id);
@@ -786,9 +806,9 @@
     });
   }
 
-  function sendToDetails(d, cat) {
+  function sendToDetails(d, cat, realLabel) {
     if (!channel) return;
-    channel.postMessage({ type: "select", incident: d, catLabel: cat.label, catColor: cat.color });
+    channel.postMessage({ type: "select", incident: d, catLabel: realLabel || cat.label, catColor: cat.color });
     connStatus.textContent = "Detail-Fenster: Auswahl gesendet (" + new Date().toLocaleTimeString("de-DE") + ")";
     connStatus.classList.add("on");
   }

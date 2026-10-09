@@ -40,16 +40,25 @@
 
 <script>
 (function () {
+  // Real classify.py label for every category (used for the displayed text,
+  // so "Sonstiges" never hides what actually happened -- see d.rawcat below).
   var CATS = {
     "Raub": "Raub", "Einbruch": "Einbruch", "Diebstahl": "Diebstahl",
     "Drogendelikt": "Drogendelikt", "Koerperverletzung": "Körperverletzung",
     "Waffendelikt": "Waffendelikt", "Toetungsdelikt": "Tötungsdelikt",
-    "Sachbeschaedigung": "Sachbeschädigung", "Sonstiges": "Sonstiges"
+    "Sachbeschaedigung": "Sachbeschädigung", "Fahrzeugaufbruch": "Fahrzeugaufbruch",
+    "Sexualdelikt": "Sexualdelikt", "Verkehrsunfall": "Verkehrsunfall",
+    "Brandstiftung": "Brandstiftung", "Hasskriminalitaet": "Hasskriminalität",
+    "Sonstiges": "Sonstiges"
   };
+  // Color follows the legend's folded category (d.cat) -- only the ones with
+  // their own legend slot get a distinct color, the rest share the grey
+  // "Sonstiges" accent even though their label above shows the real type.
   var CAT_COLORS = {
     "Raub": "#2a78d6", "Einbruch": "#eb6834", "Diebstahl": "#1baf7a",
     "Drogendelikt": "#eda100", "Koerperverletzung": "#e87ba4", "Waffendelikt": "#008300",
-    "Toetungsdelikt": "#4a3aa7", "Sachbeschaedigung": "#e34948", "Sonstiges": "#898781"
+    "Toetungsdelikt": "#4a3aa7", "Sachbeschaedigung": "#e34948",
+    "Fahrzeugaufbruch": "#6366f1", "Sexualdelikt": "#0ea5e9", "Sonstiges": "#898781"
   };
 
   function escapeHtml(s) {
@@ -69,7 +78,7 @@
       return;
     }
     document.title = d.title;
-    var catLabel = CATS[d.cat] || d.cat;
+    var catLabel = CATS[d.rawcat] || CATS[d.cat] || d.cat;
     var color = CAT_COLORS[d.cat] || "#2a78d6";
     document.documentElement.style.setProperty("--cat-color", color);
 
