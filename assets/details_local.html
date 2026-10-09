@@ -81,6 +81,7 @@
         '<div class="card-meta">' + escapeHtml(d.ort || "") + '</div>' +
         '<div class="card-prec">' + (d.prec === "a" ? "genaue Adresse" : "nur Stadtteil-Angabe (ungefähre Lage)") + '</div>' +
         (d.series_id !== undefined ? '<div class="card-prec" style="color:#000;font-weight:700;font-style:normal;">⚭ Teil einer möglichen Serie (' + d.series_n + ' Taten, gleiche Kategorie, räumlich/zeitlich nah)</div>' : '') +
+        (d.court_match ? '<div class="card-prec" style="color:#000;font-weight:700;font-style:normal;">⚖ Möglicherweise zugehöriges Gerichtsverfahren (unsicher, Details in der Meldung)</div>' : '') +
         '<a class="card-btn" href="message_local.html?id=' + encodeURIComponent(d.id) + '" target="_blank" rel="noopener">Meldung öffnen ↗</a>';
       list.appendChild(card);
     });

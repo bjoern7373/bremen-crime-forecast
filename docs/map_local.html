@@ -201,6 +201,9 @@
       </label>
       <div id="forecastInfo" style="font-size:11px; color:var(--text-muted); line-height:1.5; margin-top:4px;"></div>
 
+      <h2 style="margin-top:8px">Gerichtsverfahren</h2>
+      <div id="courtInfo" style="font-size:11px; color:var(--text-muted); line-height:1.5;"></div>
+
       <h2 style="margin-top:8px">Serien-Explorer</h2>
       <div class="explorer-row">
         <label for="distSlider">Max. Entfernung: <b id="distVal"></b></label>
@@ -487,6 +490,25 @@
     document.getElementById("forecastToggle").addEventListener("change", applyForecastVisibility);
   }).catch(function () {
     document.getElementById("forecastInfo").textContent = "Keine Prognosedaten verfügbar.";
+  });
+
+  // Aggregate Landgericht Bremen stats (src/match_verdicts.py) -- deliberately
+  // NOT a per-incident "clearance rate" claim, just an honest overview of how
+  // many serious-crime court cases exist since 2024 and what stage they're at
+  // (almost all still ongoing -- verdicts typically take 10-20+ months).
+  fetch("court_stats.json").then(function (r) { return r.json(); }).then(function (cs) {
+    var stageLabels = { auftakt: "laufend", urteilstermin: "Urteil demnächst", urteil: "Urteil gesprochen", rechtskraft: "rechtskräftig" };
+    var stageLine = Object.keys(cs.outcome_stage_counts).map(function (k) {
+      return cs.outcome_stage_counts[k] + "x " + (stageLabels[k] || k);
+    }).join(", ");
+    document.getElementById("courtInfo").innerHTML =
+      cs.n_cases_since_2024 + " Verfahren seit 2024 vor dem Landgericht Bremen (schwere Delikte: Raub, " +
+      "Tötung, schwere Körperverletzung, Drogen u.a.) &ndash; " + escapeHtml(stageLine) + ".<br>" +
+      "Davon " + cs.n_matched_to_incidents + " mit vertretbarer Sicherheit einem Vorfall auf dieser Karte " +
+      "zugeordnet (markiert mit ⚖ in der Volltext-Ansicht).<br>" +
+      "<span style=\"font-style:italic;\">" + escapeHtml(cs.note) + "</span>";
+  }).catch(function () {
+    document.getElementById("courtInfo").textContent = "Keine Gerichtsdaten verfügbar.";
   });
 
   function clusterOf(id) {

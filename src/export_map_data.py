@@ -46,6 +46,32 @@ def load_series_by_pm_id() -> dict:
     return by_pm_id
 
 
+def load_court_matches_by_pm_id() -> dict:
+    """pm_id -> court match info, for the (very few, deliberately conservative
+    -- see src/match_verdicts.py) incidents linked to a Landgericht Bremen
+    court case. A pm_id can only end up here via a specific shared street
+    name or Stadtteil, never from offense-category + date alone."""
+    matches_path = PROCESSED_DIR / "court_matches.json"
+    if not matches_path.exists():
+        return {}
+    matches = json.loads(matches_path.read_text(encoding="utf-8"))
+    by_pm_id = {}
+    for m in matches:
+        latest_release = max(m["releases"], key=lambda r: r.get("publish_date") or "")
+        info = {
+            "confidence": m["confidence"],
+            "category": m["category"],
+            "outcome_stage": m["outcome_stage"],
+            "outcome_summary": m["outcome_summary"],
+            "outcome_date": m["outcome_date"],
+            "pdf_url": latest_release["pdf_url"],
+            "pdf_title": latest_release["title"],
+        }
+        for pm_id in m["matched_pm_ids"]:
+            by_pm_id[pm_id] = info
+    return by_pm_id
+
+
 def load_external_features_by_date() -> dict:
     """date (YYYY-MM-DD str) -> dict of boolean 'extra criteria' flags, for
     the map's Serien-Explorer to optionally filter incidents by. Mirrors the
@@ -72,6 +98,7 @@ def main():
     df = pd.read_csv(PROCESSED_DIR / "incidents_geo.csv")
     series_by_pm_id = load_series_by_pm_id()
     ext_by_date = load_external_features_by_date()
+    court_by_pm_id = load_court_matches_by_pm_id()
     records = []
     for i, row in df.iterrows():
         series_info = series_by_pm_id.get(row["pm_id"])
@@ -95,6 +122,9 @@ def main():
         }
         if series_info:
             record["series_id"], record["series_n"] = series_info[0], series_info[1]
+        court_info = court_by_pm_id.get(row["pm_id"])
+        if court_info:
+            record["court_match"] = court_info
         if record["date"] and record["date"] in ext_by_date:
             record["x"] = ext_by_date[record["date"]]
         records.append(record)
@@ -108,6 +138,12 @@ def main():
         out_forecast = ROOT / "assets" / "forecast.json"
         out_forecast.write_text(forecast_path.read_text(encoding="utf-8"), encoding="utf-8")
         print(f"Copied forecast to {out_forecast}")
+
+    stats_path = PROCESSED_DIR / "court_stats.json"
+    if stats_path.exists():
+        out_stats = ROOT / "assets" / "court_stats.json"
+        out_stats.write_text(stats_path.read_text(encoding="utf-8"), encoding="utf-8")
+        print(f"Copied court_stats to {out_stats}")
 
 
 if __name__ == "__main__":

@@ -24,6 +24,13 @@
   hr { border: none; border-top: 1px solid var(--rule); margin: 16px 0; }
   .body { font-size: 14px; white-space: pre-wrap; }
   .src { font-size: 12px; margin-top: 20px; color: var(--muted); }
+  .court-box {
+    margin-top: 20px; padding: 12px 14px; border-radius: 8px;
+    border: 1px solid var(--rule); background: color-mix(in srgb, var(--accent) 8%, transparent);
+    font-size: 13px;
+  }
+  .court-box .court-title { font-weight: 700; margin-bottom: 4px; }
+  .court-box .court-caveat { font-size: 11px; color: var(--muted); margin-top: 6px; }
   a { color: var(--accent); }
   .loading { color: var(--muted); font-size: 13px; }
 </style>
@@ -77,6 +84,24 @@
     if (d.source_url) {
       html += '<div class="src">Original-Pressemeldung (ggf. inzwischen von der Polizei gelöscht): ' +
         '<a href="' + escapeHtml(d.source_url) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(d.source_url) + '</a></div>';
+    }
+
+    if (d.court_match) {
+      var cm = d.court_match;
+      var stageLabel = {
+        auftakt: "Prozess läuft (Auftakt der Hauptverhandlung)",
+        urteilstermin: "Urteil demnächst erwartet",
+        urteil: "Urteil gesprochen",
+        rechtskraft: "Urteil rechtskräftig"
+      }[cm.outcome_stage] || cm.outcome_stage;
+      html += '<div class="court-box">' +
+        '<div class="court-title">⚖ Möglicherweise zugehöriges Gerichtsverfahren (Landgericht Bremen)</div>' +
+        '<div>' + escapeHtml(stageLabel) + (cm.outcome_summary ? ' &middot; ' + escapeHtml(cm.outcome_summary) : '') + '</div>' +
+        '<div><a href="' + escapeHtml(cm.pdf_url) + '" target="_blank" rel="noopener noreferrer">Pressemitteilung öffnen (PDF) ↗</a></div>' +
+        '<div class="court-caveat">Automatisch zugeordnet über Delikttyp + Datum + gemeinsamen Straßennamen. ' +
+        'Angeklagte werden in Gerichtsmitteilungen nie namentlich genannt – diese Zuordnung ist eine ' +
+        'Wahrscheinlichkeitseinschätzung, kein amtlicher Nachweis, dass es sich um denselben Fall handelt.</div>' +
+        '</div>';
     }
     content.className = "";
     content.innerHTML = html;

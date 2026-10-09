@@ -69,6 +69,64 @@ not beat chance yet (PAI < 1) -- there are simply too few burglaries (n=63)
 in the dataset so far for a reliable signal; this should improve as the
 daily scheduled run accumulates more history.
 
+## Forecast overlay (red halo)
+
+`src/forecast.py` runs the exact same `exp_decay` + `dow_seasonal` models
+from `backtest.py` (same defaults: k=5, horizon=7, half_life=7) once more,
+on all available history, to score *today* instead of a past day -- an
+ensemble (mean of min-max-normalized scores) ranks all 23 Stadtteile, and
+the top 5 are flagged `elevated: true`. Written to
+`data/processed/forecast.json` -> copied to `assets/forecast.json`. The map
+renders these as a toggleable red halo layer (sidebar: "Prognose"), always
+labeled with the backtested PAI so it's clear this is a statistical
+tendency (~30-40% better than random), not a prediction of individual
+events.
+
+## Gerichtsurteile (court verdicts -- experimental, read this before trusting it)
+
+`src/scrape_courts.py` scrapes Landgericht Bremen's press releases (the
+*only* Bremen court with a real, browsable multi-year archive -- see below)
+and `src/match_verdicts.py` heuristically links them back to incidents on
+this map, as a rough "was there a court case?" signal.
+
+**Why only Landgericht Bremen:** researched all three candidates.
+Staatsanwaltschaft Bremen's own press page is currently dead ("wird in
+Kuerze aktualisiert"). Amtsgericht Bremen (the court that actually handles
+most everyday crime -- Diebstahl, Drogendelikte, einfache
+Koerperverletzung) has no archive at all, just a single page that gets
+overwritten every week with the *next* week's scheduled hearings -- no
+verdicts, no history. So in practice this only covers the *serious* end
+(Mord, Totschlag, Raub, schwere Koerperverletzung, sexueller Missbrauch,
+grosse Drogenverfahren) that goes to Landgericht, not the bulk of incidents
+on this map.
+
+**Why matching is intentionally very conservative:** defendants are never
+named in these releases -- only age and offense. An early version matched
+on offense-category + date alone and produced a confident-*looking* but
+**wrong** match (two unrelated violent incidents on the same day, same
+category, in a city of ~570,000 people -- coincidences happen). Rebuilt to
+require a specific, shared street name between the court's Tatvorwurf text
+and the incident's location (or, failing that, an exact Stadtteil match
+narrowed to very few candidates); anything weaker is dropped rather than
+shown. Result on the current dataset: of 111 Landgericht cases since 2024
+with a usable date, exactly **1** meets this bar. That's the honest number,
+not a bug -- most court cases simply don't have a matchable incident yet
+(crime-to-verdict lag is typically 10-20+ months; our police data only
+starts Oct 2024) or don't mention a specific-enough location.
+
+A matched incident shows a "⚖" badge and, in the full-text view, the
+linked PM (stage, PDF link) with an explicit caveat that this is a
+probability estimate, not an official record of the same case.
+`data/processed/court_stats.json` (-> `assets/court_stats.json`) also
+tracks an honest aggregate: how many Landgericht cases exist and what
+stage they're at (almost all still "laufend" -- ongoing).
+
+Separately, `scrape_courts.py` also polls Amtsgericht Bremen's weekly
+bulletin and appends new entries to `data/processed/amtsgericht_log.jsonl`
+(deduped by case number) -- not matched to incidents (no verdicts to match
+against), just building our own forward-looking history of scheduled
+hearings since there's no archive to backfill from.
+
 ## External features (weather, events, calendar)
 
 ```

@@ -4,9 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Bremen Tatkarte - Details</title>
-<link rel="manifest" href="manifest.json">
-<link rel="icon" href="icons/icon-192.png">
-<meta name="theme-color" content="#1f2937">
 <style>
   :root {
     --surface-1: #fcfcfb; --page-plane: #f9f9f7; --text-primary: #0b0b0b;
@@ -84,6 +81,7 @@
         '<div class="card-meta">' + escapeHtml(d.ort || "") + '</div>' +
         '<div class="card-prec">' + (d.prec === "a" ? "genaue Adresse" : "nur Stadtteil-Angabe (ungefähre Lage)") + '</div>' +
         (d.series_id !== undefined ? '<div class="card-prec" style="color:#000;font-weight:700;font-style:normal;">⚭ Teil einer möglichen Serie (' + d.series_n + ' Taten, gleiche Kategorie, räumlich/zeitlich nah)</div>' : '') +
+        (d.court_match ? '<div class="card-prec" style="color:#000;font-weight:700;font-style:normal;">⚖ Möglicherweise zugehöriges Gerichtsverfahren (unsicher, Details in der Meldung)</div>' : '') +
         '<a class="card-btn" href="message_local.html?id=' + encodeURIComponent(d.id) + '" target="_blank" rel="noopener">Meldung öffnen ↗</a>';
       list.appendChild(card);
     });

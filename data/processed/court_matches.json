@@ -1,0 +1,25 @@
+[
+  {
+    "js_key": "19710/2026",
+    "confidence": "strasse",
+    "category": "Toetungsdelikt",
+    "tat_date_min": "2026-03-17",
+    "tat_date_max": "2026-03-17",
+    "district": null,
+    "outcome_stage": "auftakt",
+    "outcome_summary": null,
+    "outcome_date": null,
+    "releases": [
+      {
+        "pm_id": "lg-2026-63",
+        "title": "Auftakt im Verfahren wegen Totschlags",
+        "stage": "auftakt",
+        "publish_date": "2026-09-11",
+        "pdf_url": "https://www.landgericht.bremen.de/sixcms/media.php/13/PM%2063-26%20Auftakt%20im%20Verfahren%20wegen%20Totschlags.pdf"
+      }
+    ],
+    "matched_pm_ids": [
+      19126
+    ]
+  }
+]

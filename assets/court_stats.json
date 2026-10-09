@@ -1,0 +1,23 @@
+{
+  "source": "Landgericht Bremen",
+  "n_cases_since_2024": 111,
+  "n_matched_to_incidents": 1,
+  "outcome_stage_counts": {
+    "auftakt": 108,
+    "rechtskraft": 2,
+    "urteilstermin": 1
+  },
+  "category_counts": {
+    "Toetungsdelikt": 5,
+    "Koerperverletzung": 24,
+    "Raub": 50,
+    "Waffendelikt": 6,
+    "Drogendelikt": 17,
+    "Sachbeschaedigung": 1,
+    "Diebstahl": 2,
+    "Brandstiftung": 4,
+    "Sexualdelikt": 1,
+    "Einbruch": 1
+  },
+  "note": "Nur Landgericht Bremen (schwere Delikte); Amtsgericht/Staatsanwaltschaft haben kein nutzbares Archiv (siehe README). Angeklagte werden in den Pressemitteilungen nie namentlich genannt, daher nur sehr wenige Vorfall-Zuordnungen möglich/verlässlich (siehe n_matched_to_incidents)."
+}
