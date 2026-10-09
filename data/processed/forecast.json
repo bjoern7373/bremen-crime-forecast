@@ -1,0 +1,192 @@
+{
+  "generated_for_date": "2026-10-09",
+  "horizon_days": 7,
+  "k": 5,
+  "model_note": "Ensemble aus zwei in src/backtest.py getesteten Modellen (exponentiell abklingende Tatenhäufigkeit + Wochentags-Muster), gemittelt. Im Backtest ~30-40% besser als Zufallsraten (PAI ~1.3-1.4). Statistische Tendenz, keine Vorhersage einzelner Taten.",
+  "districts": [
+    {
+      "stadtteil": "Mitte",
+      "lat": 53.07867,
+      "lon": 8.8109,
+      "score": 0.939,
+      "rank": 1,
+      "elevated": true
+    },
+    {
+      "stadtteil": "Schwachhausen",
+      "lat": 53.08543,
+      "lon": 8.83631,
+      "score": 0.545,
+      "rank": 2,
+      "elevated": true
+    },
+    {
+      "stadtteil": "Neustadt",
+      "lat": 53.06954,
+      "lon": 8.79284,
+      "score": 0.384,
+      "rank": 3,
+      "elevated": true
+    },
+    {
+      "stadtteil": "Walle",
+      "lat": 53.10287,
+      "lon": 8.78305,
+      "score": 0.314,
+      "rank": 4,
+      "elevated": true
+    },
+    {
+      "stadtteil": "Östliche Vorstadt",
+      "lat": 53.07023,
+      "lon": 8.84098,
+      "score": 0.283,
+      "rank": 5,
+      "elevated": true
+    },
+    {
+      "stadtteil": "Hemelingen",
+      "lat": 53.05557,
+      "lon": 8.88431,
+      "score": 0.279,
+      "rank": 6,
+      "elevated": false
+    },
+    {
+      "stadtteil": "Blumenthal",
+      "lat": 53.18179,
+      "lon": 8.57263,
+      "score": 0.192,
+      "rank": 7,
+      "elevated": false
+    },
+    {
+      "stadtteil": "Vegesack",
+      "lat": 53.17052,
+      "lon": 8.62388,
+      "score": 0.179,
+      "rank": 8,
+      "elevated": false
+    },
+    {
+      "stadtteil": "Burglesum",
+      "lat": 53.16109,
+      "lon": 8.69172,
+      "score": 0.168,
+      "rank": 9,
+      "elevated": false
+    },
+    {
+      "stadtteil": "Woltmershausen",
+      "lat": 53.07963,
+      "lon": 8.77022,
+      "score": 0.166,
+      "rank": 10,
+      "elevated": false
+    },
+    {
+      "stadtteil": "Obervieland",
+      "lat": 53.03885,
+      "lon": 8.83796,
+      "score": 0.155,
+      "rank": 11,
+      "elevated": false
+    },
+    {
+      "stadtteil": "Findorff",
+      "lat": 53.09468,
+      "lon": 8.80828,
+      "score": 0.145,
+      "rank": 12,
+      "elevated": false
+    },
+    {
+      "stadtteil": "Huchting",
+      "lat": 53.05194,
+      "lon": 8.7423,
+      "score": 0.129,
+      "rank": 13,
+      "elevated": false
+    },
+    {
+      "stadtteil": "Osterholz",
+      "lat": 53.05551,
+      "lon": 8.95071,
+      "score": 0.124,
+      "rank": 14,
+      "elevated": false
+    },
+    {
+      "stadtteil": "Gröpelingen",
+      "lat": 53.11671,
+      "lon": 8.76305,
+      "score": 0.094,
+      "rank": 15,
+      "elevated": false
+    },
+    {
+      "stadtteil": "Horn-Lehe",
+      "lat": 53.10362,
+      "lon": 8.88188,
+      "score": 0.075,
+      "rank": 16,
+      "elevated": false
+    },
+    {
+      "stadtteil": "Häfen",
+      "lat": 53.1125,
+      "lon": 8.73417,
+      "score": 0.033,
+      "rank": 17,
+      "elevated": false
+    },
+    {
+      "stadtteil": "Vahr",
+      "lat": 53.07865,
+      "lon": 8.87757,
+      "score": 0.024,
+      "rank": 18,
+      "elevated": false
+    },
+    {
+      "stadtteil": "Oberneuland",
+      "lat": 53.08986,
+      "lon": 8.93691,
+      "score": 0.012,
+      "rank": 19,
+      "elevated": false
+    },
+    {
+      "stadtteil": "Blockland",
+      "lat": 53.14222,
+      "lon": 8.80002,
+      "score": 0.006,
+      "rank": 20,
+      "elevated": false
+    },
+    {
+      "stadtteil": "Borgfeld",
+      "lat": 53.1253,
+      "lon": 8.90504,
+      "score": 0.0,
+      "rank": 21,
+      "elevated": false
+    },
+    {
+      "stadtteil": "Strom",
+      "lat": 53.08393,
+      "lon": 8.69912,
+      "score": 0.0,
+      "rank": 22,
+      "elevated": false
+    },
+    {
+      "stadtteil": "Seehausen",
+      "lat": 53.11073,
+      "lon": 8.71148,
+      "score": 0.0,
+      "rank": 23,
+      "elevated": false
+    }
+  ]
+}

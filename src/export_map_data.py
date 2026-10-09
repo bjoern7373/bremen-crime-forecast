@@ -103,6 +103,12 @@ def main():
     print(f"Wrote {len(records)} records to {out_path} "
           f"({out_path.stat().st_size / 1024:.0f} KB)")
 
+    forecast_path = PROCESSED_DIR / "forecast.json"
+    if forecast_path.exists():
+        out_forecast = ROOT / "assets" / "forecast.json"
+        out_forecast.write_text(forecast_path.read_text(encoding="utf-8"), encoding="utf-8")
+        print(f"Copied forecast to {out_forecast}")
+
 
 if __name__ == "__main__":
     main()

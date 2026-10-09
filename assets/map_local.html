@@ -195,6 +195,12 @@
       <h2>Delikttyp</h2>
       <div id="legendList"></div>
 
+      <h2 style="margin-top:8px">Prognose</h2>
+      <label style="font-size:12px; display:flex; align-items:center; gap:6px; cursor:pointer;">
+        <input type="checkbox" id="forecastToggle" checked> Risiko-Gebiete anzeigen (rot)
+      </label>
+      <div id="forecastInfo" style="font-size:11px; color:var(--text-muted); line-height:1.5; margin-top:4px;"></div>
+
       <h2 style="margin-top:8px">Serien-Explorer</h2>
       <div class="explorer-row">
         <label for="distSlider">Max. Entfernung: <b id="distVal"></b></label>
@@ -436,6 +442,51 @@
     map.on("click", function () { if (focusedCluster) exitFocus(DATA); });
   }).catch(function (err) {
     document.getElementById("stats").textContent = "Fehler: map_data.json konnte nicht geladen werden (" + err + ")";
+  });
+
+  // Forecast overlay: same exp_decay + dow_seasonal hotspot models already
+  // validated in src/backtest.py (PAI ~1.3-1.4, i.e. ~30-40% better than
+  // random guessing), run once more on today's data to flag which Stadtteile
+  // are currently elevated-risk. A statistical tendency, not a prediction of
+  // individual events -- loaded separately so an older package without
+  // forecast.json just silently shows no overlay instead of breaking.
+  var forecastLayers = [];
+  fetch("forecast.json").then(function (r) { return r.json(); }).then(function (fc) {
+    var info = document.getElementById("forecastInfo");
+    info.innerHTML =
+      "Prognose f&uuml;r " + escapeHtml(fc.generated_for_date) + " (" + fc.horizon_days + " Tage), Top " + fc.k + " von 23 Stadtteilen.<br>" +
+      "<span style=\"font-style:italic;\">" + escapeHtml(fc.model_note) + "</span>";
+
+    var elevated = fc.districts.filter(function (d) { return d.elevated; });
+    var maxScore = elevated.reduce(function (m, d) { return Math.max(m, d.score); }, 0.0001);
+
+    elevated.forEach(function (d) {
+      var intensity = d.score / maxScore;  // 0..1 within the elevated set, rank 1 = most vivid
+      var circle = L.circle([d.lat, d.lon], {
+        radius: 500 + 900 * intensity,
+        color: "#dc2626", weight: 2, opacity: 0.15 + 0.35 * intensity,
+        fillColor: "#dc2626", fillOpacity: 0.05 + 0.12 * intensity,
+        interactive: false, pane: "overlayPane"
+      });
+      circle.bindTooltip(
+        "<b>Prognose: " + escapeHtml(d.stadtteil) + "</b><br>Rang " + d.rank + " von 23 &middot; erh&ouml;htes Risiko" +
+        "<div style=\"font-size:11px; color:var(--text-muted); margin-top:2px;\">Statistische Tendenz (siehe Hinweis in der Seitenleiste), keine Vorhersage einzelner Taten.</div>",
+        { className: "bt-tooltip", sticky: true }
+      );
+      forecastLayers.push(circle);
+    });
+
+    function applyForecastVisibility() {
+      var show = document.getElementById("forecastToggle").checked;
+      forecastLayers.forEach(function (c) {
+        if (show) { if (!map.hasLayer(c)) c.addTo(map); }
+        else { if (map.hasLayer(c)) map.removeLayer(c); }
+      });
+    }
+    applyForecastVisibility();
+    document.getElementById("forecastToggle").addEventListener("change", applyForecastVisibility);
+  }).catch(function () {
+    document.getElementById("forecastInfo").textContent = "Keine Prognosedaten verfügbar.";
   });
 
   function clusterOf(id) {

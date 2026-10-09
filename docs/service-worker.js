@@ -21,7 +21,7 @@ self.addEventListener("activate", function (event) {
 
 self.addEventListener("fetch", function (event) {
   var url = new URL(event.request.url);
-  if (url.pathname.endsWith("map_data.json")) {
+  if (url.pathname.endsWith("map_data.json") || url.pathname.endsWith("forecast.json")) {
     event.respondWith(
       fetch(event.request).then(function (res) {
         caches.open(CACHE).then(function (c) { c.put(event.request, res.clone()); });
