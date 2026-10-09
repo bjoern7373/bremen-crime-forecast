@@ -508,14 +508,25 @@
       .map(function (c) { return catCounts90[c] + "x " + escapeHtml(RAW_LABELS[c] || c); })
       .join(", ");
 
-    // "was statistisch als nächste Tat zu erwarten ist" -- simplest honest
-    // answer: whichever Delikttyp has historically been most common in this
-    // Stadtteil (all-time, not just the last 90 days, for a stabler base
-    // rate), stated as its share of all Taten there.
+    // "was statistisch als nächste Tat zu erwarten ist" -- whichever Delikttyp
+    // has historically been most common in this Stadtteil (all-time, not
+    // just the last 90 days, for a stabler base rate). The literal "Sonstiges"
+    // catch-all (reports matching no classify.py keyword rule at all -- not
+    // the same as the grey legend color, which also groups a few specific-
+    // but-rare types like Verkehrsunfall) is excluded from this pick even
+    // when it's the single largest bucket (common, since it bundles many
+    // unrelated minor report types): naming it answers nothing useful, so we
+    // report the most common *specific* offense instead, and only fall back
+    // to "Sonstiges" if truly nothing more specific exists in this Stadtteil.
     var topCat = null, topCount = 0;
     Object.keys(catCountsAll).forEach(function (c) {
+      if (c === "Sonstiges") return;
       if (catCountsAll[c] > topCount) { topCount = catCountsAll[c]; topCat = c; }
     });
+    if (!topCat && catCountsAll["Sonstiges"]) {
+      topCat = "Sonstiges";
+      topCount = catCountsAll["Sonstiges"];
+    }
     var nextLikely = "";
     if (topCat && totalAll > 0) {
       var pct = Math.round(100 * topCount / totalAll);
