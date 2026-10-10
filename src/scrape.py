@@ -29,7 +29,20 @@ USER_AGENT = (
     "contact via github issue if this causes any trouble)"
 )
 
-_PUBDATE_RE = re.compile(r"^\((\d{2}\.\d{2}\.\d{4})\)$")
+_PUBDATE_RE = re.compile(r"^\(?\s*(\d{1,2})\.(\d{1,2})\.(\d{2}|\d{4})\s*\)?$")
+
+
+def _parse_pubdate_line(line: str) -> str | None:
+    """Normalize the press office's date line to DD.MM.YYYY. They write it as
+    '(07.10.2026)', bare '07.10.2026' or with a 2-digit year '(06.02.26)';
+    a typo'd year like '(11.02.206)' is left unrecognized rather than guessed."""
+    m = _PUBDATE_RE.match(line.strip())
+    if not m:
+        return None
+    dd, mm, yy = m.groups()
+    if len(yy) == 2:
+        yy = "20" + yy
+    return f"{int(dd):02d}.{int(mm):02d}.{yy}"
 
 
 @dataclass
@@ -108,10 +121,16 @@ def parse_chunk(html: str, source_url: str) -> list[PressRelease]:
             raw_text = p.get_text("\n", strip=True)
             if not raw_text:
                 continue
-            m = _PUBDATE_RE.match(raw_text)
-            if m and publish_date is None:
-                publish_date = m.group(1)
-                continue
+            # the date line precedes "Ort:" -- usually its own paragraph, but
+            # sometimes the first line of one that also holds Ort/Zeit
+            if publish_date is None and ort_raw is None:
+                first_line, _, rest = raw_text.partition("\n")
+                parsed = _parse_pubdate_line(first_line)
+                if parsed:
+                    publish_date = parsed
+                    raw_text = rest.strip()
+                    if not raw_text:
+                        continue
             if ort_raw is None and raw_text.startswith("Ort:"):
                 lines = raw_text.split("\n")
                 for line in lines:
