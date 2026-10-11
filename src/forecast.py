@@ -1,13 +1,12 @@
 """
-Forward-looking hotspot forecast, using exactly the model(s) validated in
-src/backtest.py (same math, same defaults: k=5, horizon=7, half_life=7) --
-but instead of rolling through history to score past performance, this
-scores *today* using ALL available history, to flag which Stadtteile are
-currently elevated-risk for the map's red "Prognose"-halo.
+What the map's "Prognose" shows, computed from all the history we hold:
 
-This is NOT a new/different model -- it's the same exp_decay + dow_seasonal
-signals backtest.py already showed beat random guessing by ~30-40% (PAI
-~1.3-1.4), just run once more on the freshest data instead of on a past day.
+  - which Stadtteile to mark (red halo): the K with the highest score of the
+    hotspot model in src/backtest.py (same math, same defaults);
+  - per Stadtteil, when the next report is to be expected, overall and for
+    the most likely offense types (src/timing.py);
+  - how both did when tested against the past, so the map can say so next to
+    every statement instead of asking to be believed.
 
 Usage:
     python src/forecast.py
@@ -20,7 +19,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from backtest import load_panel, pivot_target, score_exp_decay, score_dow_seasonal
+import timing
+from backtest import (MODELS, NEEDS_WEEKDAY, load_panel, observed_days, pivot_target,
+                      run_backtest, summarize)
 
 ROOT = Path(__file__).resolve().parent.parent
 PROCESSED_DIR = ROOT / "data" / "processed"
@@ -29,31 +30,107 @@ CENTROIDS_PATH = ROOT / "data" / "geocode_cache" / "district_centroids.json"
 TARGET = "n_total"
 K = 5
 HORIZON = 7
-HALF_LIFE = 7.0
+MODEL = "ensemble"       # the score on the map, see backtest.MODELS
+BENCHMARK = "long_run"   # "always the busiest Stadtteile" -- what MODEL has to beat
 
 
-def normalize(s: pd.Series) -> pd.Series:
-    lo, hi = s.min(), s.max()
-    if hi - lo < 1e-9:
-        return pd.Series(0.0, index=s.index)
-    return (s - lo) / (hi - lo)
+def hotspot_check(matrix: pd.DataFrame) -> dict:
+    """How the marking would have done in the past, next to random marking
+    and to always marking the busiest Stadtteile."""
+    observed = observed_days(matrix.index)
+    model = summarize(run_backtest(matrix, MODEL, K, HORIZON, observed=observed), MODEL)
+    bench = summarize(run_backtest(matrix, BENCHMARK, K, HORIZON, observed=observed), BENCHMARK)
+    return {
+        "n_test_days": model["n_test_days"],
+        "hit_rate": model["precision@k"],
+        "random": model["random"],
+        "always_busiest": bench["precision@k"],
+    }
+
+
+def model_note(check: dict) -> str:
+    pct = lambda x: f"{round(100 * x)} %"
+    note = (
+        f"Markiert sind die {K} Stadtteile mit dem höchsten Wert aus jüngster Häufung und "
+        f"Wochentags-Muster. Rückblick-Test über {check['n_test_days']} Tage: In {pct(check['hit_rate'])} "
+        f"der Fälle gab es im markierten Stadtteil binnen {HORIZON} Tagen tatsächlich eine Meldung "
+        f"(bei zufälliger Auswahl: {pct(check['random'])}). "
+    )
+    if check["hit_rate"] > check["always_busiest"] + 0.02:
+        note += (f"Wer stattdessen immer die {K} Stadtteile mit den meisten Meldungen markiert, "
+                 f"kommt auf {pct(check['always_busiest'])}. ")
+    else:
+        note += (f"Wer einfach immer die {K} Stadtteile mit den meisten Meldungen markiert, kommt "
+                 f"allerdings auf {pct(check['always_busiest'])}: Die Prognose zeigt bisher vor allem, "
+                 f"WO dauerhaft viel gemeldet wird – ein zeitliches Muster darüber hinaus ist noch "
+                 f"nicht nachweisbar. ")
+    return note + "Statistische Tendenz, keine Vorhersage einzelner Taten."
+
+
+def marked_then():
+    """Returns a function day -> the Stadtteile the map would have marked on
+    that day, scored exactly as main() does it, from the reports that had
+    been published before that day. The time-statement check needs it: the
+    statements are shown for the marked Stadtteile, so they are checked for
+    those."""
+    inc = pd.read_csv(PROCESSED_DIR / "incidents.csv")
+    inc = inc[inc["stadtteil"].isin(timing.KNOWN_STADTTEILE) & ~inc["is_bremerhaven"].astype(bool)]
+    happened = pd.to_datetime(inc["incident_date"], errors="coerce")
+    published = pd.to_datetime(inc["pub"], errors="coerce").fillna(happened)
+    known = happened.notna().to_numpy()
+    happened, published = happened[known].to_numpy(), published[known].to_numpy()
+    districts = sorted(timing.KNOWN_STADTTEILE)
+    column = inc["stadtteil"][known].map({name: i for i, name in enumerate(districts)}).to_numpy()
+
+    def marked(day: pd.Timestamp):
+        before = published < np.datetime64(day)
+        if not before.any():
+            return None
+        first = happened[before].min()
+        days = pd.date_range(first, day - pd.Timedelta(days=1), freq="D")
+        counts = np.zeros((len(days), len(districts)))
+        np.add.at(counts, ((happened[before] - first) // np.timedelta64(1, "D"), column[before]), 1)
+        history = pd.DataFrame(counts, index=days, columns=districts)
+        weekday = {"current_dow": day.dayofweek} if MODEL in NEEDS_WEEKDAY else {}
+        return set(MODELS[MODEL](history, HORIZON, **weekday).nlargest(K).index)
+    return marked
+
+
+def timing_block(grid: timing.Grid, as_of: pd.Timestamp) -> dict:
+    check = timing.backtest(grid, marked=marked_then())
+    return {
+        "as_of": as_of.strftime("%Y-%m-%d"),
+        "levels": [int(q * 100) for q in timing.QUANTILES],
+        "max_window_days": timing.MAX_WINDOW_DAYS,
+        # How often the time windows of each level came true in the past --
+        # measured on the kind of statement the map shows (busiest Stadtteile,
+        # their most frequent offense types), not on the average of all pairs.
+        "check": {kind: {str(int(q * 100)): check["windows"][q]["shown_" + kind] for q in timing.QUANTILES
+                         if q in check["windows"]}
+                  for kind in ("offense", "any")},
+        "coverage": timing.coverage_summary(grid),
+    }
 
 
 def main():
     panel = load_panel()
     matrix = pivot_target(panel, TARGET)
-    last_date = matrix.index.max()
-    forecast_for = last_date + pd.Timedelta(days=1)
+    grid = timing.build_grid(*timing.load_inputs())
+    # The forecast is for the day after the newest press release we hold --
+    # not after the newest incident, which is usually a day older. Days up to
+    # then on which nothing was reported count as what they are: quiet so far.
+    forecast_for = max(matrix.index.max(), grid.days[-1]) + pd.Timedelta(days=1)
+    matrix = matrix.reindex(pd.date_range(matrix.index.min(), forecast_for - pd.Timedelta(days=1), freq="D"),
+                            fill_value=0)
 
-    exp_scores = score_exp_decay(matrix, HORIZON, half_life=HALF_LIFE)
-    dow_scores = score_dow_seasonal(matrix, HORIZON, current_dow=forecast_for.dayofweek)
-    ensemble = (normalize(exp_scores) + normalize(dow_scores)) / 2.0
-    ensemble = ensemble.sort_values(ascending=False)
+    weekday = {"current_dow": forecast_for.dayofweek} if MODEL in NEEDS_WEEKDAY else {}
+    scores = MODELS[MODEL](matrix, HORIZON, **weekday).sort_values(ascending=False)
 
+    windows = timing.current_windows(grid)
     centroids = json.loads(CENTROIDS_PATH.read_text(encoding="utf-8"))
 
     districts = []
-    for rank, (stadtteil, score) in enumerate(ensemble.items(), start=1):
+    for rank, (stadtteil, score) in enumerate(scores.items(), start=1):
         latlon = centroids.get(stadtteil)
         if latlon is None:
             continue  # no known centroid (shouldn't happen once geocode.py has run) -- skip rather than guess
@@ -64,18 +141,17 @@ def main():
             "score": round(float(score), 3),
             "rank": rank,
             "elevated": rank <= K,
+            "timing": windows.get(stadtteil),
         })
 
+    check = hotspot_check(matrix)
     out = {
         "generated_for_date": forecast_for.strftime("%Y-%m-%d"),
         "horizon_days": HORIZON,
         "k": K,
-        "model_note": (
-            "Ensemble aus zwei in src/backtest.py getesteten Modellen "
-            "(exponentiell abklingende Tatenhäufigkeit + Wochentags-Muster), "
-            "gemittelt. Im Backtest ~30-40% besser als Zufallsraten (PAI ~1.3-1.4). "
-            "Statistische Tendenz, keine Vorhersage einzelner Taten."
-        ),
+        "model_note": model_note(check),
+        "hotspot_check": check,
+        "timing": timing_block(grid, forecast_for),
         "districts": districts,
     }
 
@@ -83,7 +159,14 @@ def main():
     out_path.write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"Forecast for {out['generated_for_date']} (horizon {HORIZON}d, k={K}):")
     for d in districts[:K]:
-        print(f"  #{d['rank']} {d['stadtteil']:20s} score={d['score']:.3f}")
+        w = d["timing"]
+        nxt = w["offenses"][0] if w and w["offenses"] else None
+        print(f"  #{d['rank']} {d['stadtteil']:20s} score={d['score']:.3f}  "
+              f"next report within {w['any']['t50']}-{w['any']['t80']} days"
+              + (f", most likely {nxt['category']} ({nxt['t50']}-{nxt['t80']} days)" if nxt else ""))
+    print(f"Hotspot check: hit rate {check['hit_rate']}, random {check['random']}, "
+          f"always the busiest {check['always_busiest']} ({check['n_test_days']} test days)")
+    print(f"Time-window check: {json.dumps(out['timing']['check'])}")
     print(f"\nWrote {out_path}")
 
 
