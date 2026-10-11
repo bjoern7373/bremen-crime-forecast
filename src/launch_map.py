@@ -4,7 +4,7 @@ update was more than 24h ago, makes sure a local server is serving the
 assets folder, then opens the map and a details side-window, positioned
 next to each other.
 
-Invoked by the desktop shortcut (see src/make_shortcut.py).
+Invoked by the desktop shortcut "Bremen Tatkarte" (pythonw.exe src/launch_map.py, see README).
 """
 import ctypes
 import socket

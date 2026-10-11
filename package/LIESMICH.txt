@@ -1,0 +1,141 @@
+BREMEN TATKARTE - Standalone-Version
+======================================
+
+STARTEN
+-------
+Doppelklick auf "Start.bat". Es oeffnet sich die Karte (zoom- und
+verschiebbar wie bei Google Maps - Scrollrad oder +/- zum Zoomen, Ziehen
+zum Verschieben). Das Detail-Fenster oeffnet sich automatisch daneben.
+Klick auf einen Punkt/Halo auf der Karte zeigt dort die Details; "Meldung
+lesen" zeigt den vollen Pressetext im selben Fenster. Laesst der Browser das
+Detail-Fenster nicht zu (Popup blockiert) oder ist das Kartenfenster
+maximiert, erscheint der Text stattdessen direkt in der Kartenseite.
+
+MELDUNGEN UND GERICHTSVERFAHREN ZUM DURCHLESEN
+-----------------------------------------------
+Rechts neben der Karte steht ein Feld mit zwei Reitern: "Polizeimeldungen"
+und "Gerichtsverfahren". Beide Listen zeigen die neueste Meldung oben, mit
+Datum und Ueberschrift; ein Klick zeigt den vollstaendigen Text. Bereits
+geoeffnete Ueberschriften werden grau. In der Polizei-Liste stehen auch
+Meldungen ohne Punkt auf der Karte (z.B. stadtweite Warnungen) - sie sind
+mit "nicht auf der Karte" gekennzeichnet. Die Gerichts-Liste enthaelt die
+Pressemitteilungen des Landgerichts Bremen seit 2024 und die
+Verhandlungstermine des Amtsgerichts, die seit Oktober 2026 mitgeschrieben
+werden (Stand: Erstellungsdatum des ZIP - Gerichtsdaten werden von dieser
+Standalone-Version nicht selbst aktualisiert).
+
+Rechts unter "Serien-Explorer" drei Regler: Max. Entfernung, Max. Zeitraum,
+Min. Tatenzahl. Taten gleicher Deliktart, die innerhalb dieser Grenzen
+raeumlich und zeitlich zusammenliegen, gelten als "moegliche Serie" (wie bei
+echter Crime-Linkage-Analyse) - alle anderen Punkte werden automatisch
+kleiner/blasser, eine gestrichelte Linie verbindet die Taten jeder Serie.
+Regler bewegen und direkt live auf der Karte sehen, welche Taten sich
+"ueberschneiden" - zum Ausprobieren gedacht, nicht als Beweis. Mehrere
+Pressemeldungen zur selben Tat (z.B. Ersttat + Festnahme) werden vorher
+automatisch herausgefiltert, zaehlen also nicht doppelt.
+
+Klick auf einen Punkt einer moeglichen Serie: alle anderen Punkte
+verschwinden, die Karte zoomt auf den Bereich der Serie, uebrig bleiben nur
+die Taten dieser einen Serie plus eine Liste rechts mit jeder einzelnen
+Meldung (Titel, Datum, Ort, Link zum Volltext) und den Kriterien, warum sie
+zusammenhaengen (Tage/Meter seit der vorherigen Tat). Klick irgendwo auf die
+Karte (leere Flaeche) hebt die Auswahl wieder auf.
+
+Unter den drei Reglern: "Zusaetzliche Kriterien" - Haekchen bei Wochenende,
+Feiertag, Schulferien, Festival, Werder-Heimspiel, Regen oder Monatsanfang
+schraenkt die Serien-Suche auf Taten ein, die NUR an Tagen mit dieser
+Eigenschaft passiert sind (mehrere Haekchen = alle muessen gleichzeitig
+zutreffen). So laesst sich z.B. pruefen, ob eine Serie speziell an
+Regentagen oder waehrend eines Festivals auftritt.
+
+PROGNOSE (ROTE HALOS)
+----------------------
+Rechts unter "Prognose" ein Haekchen, das 5 Stadtteile rot einfaerbt: die
+mit dem hoechsten Wert aus juengster Haeufung und Wochentags-Muster. Der
+Text darunter nennt, wie oft diese Markierung im Rueckblick richtig lag -
+und dass sie bisher vor allem zeigt, WO dauerhaft viel gemeldet wird, nicht
+WANN. Faehrt man mit der Maus ueber einen roten Kreis, steht dort, bis wann
+die naechste Polizeimeldung in diesem Stadtteil zu erwarten ist (mit 50 %
+bzw. 80 % Wahrscheinlichkeit) und welches Delikt dort am haeufigsten
+gemeldet wird - samt der Trefferquote solcher Angaben in der Vergangenheit.
+Eine statistische Tendenz, keine Vorhersage einzelner Taten.
+
+GERICHTSVERFAHREN
+-------------------
+Rechts unter "Gerichtsverfahren" eine Uebersicht, wie viele Verfahren seit
+2024 vor dem Landgericht Bremen (schwere Delikte) laufen und in welchem
+Stadium (laufend/Urteil/rechtskraeftig); die Mitteilungen selbst stehen im
+Wortlaut in der Liste "Gerichtsverfahren". In sehr wenigen, dafuer besonders
+sicheren Faellen (gleicher Strassenname in Polizei- und Gerichtsmeldung)
+wird ein Vorfall direkt mit seinem Gerichtsverfahren verknuepft - erkennbar
+am "⚖"-Symbol; Details dazu stehen dann in der Volltext-Ansicht der
+Meldung. Angeklagte werden in Gerichtsmitteilungen nie namentlich genannt,
+daher bleibt das eine Wahrscheinlichkeitseinschaetzung, kein amtlicher
+Nachweis. Das Amtsgericht Bremen hat kein Online-Archiv fuer Urteile, nur
+eine woechentlich ueberschriebene Terminvorschau ohne Ergebnisse; diese
+Termine stehen in der Liste, lassen sich aber keinem Vorfall zuordnen.
+
+VORAUSSETZUNGEN
+----------------
+- Windows 10/11 mit PowerShell (immer vorinstalliert) und Microsoft Edge
+  (Standard-Browser auf Windows). Keine Installation noetig.
+- Internetverbindung beim Benutzen der Karte: Kartenprogramm und
+  Kartenkacheln werden live aus dem Internet geladen (wie bei jeder
+  Online-Karte). Die Vorfallsdaten selbst sind mitgeliefert, aber ohne
+  Internet laesst sich die Karte nicht anzeigen.
+- Falls weder Edge noch PowerShell-ExecutionPolicy mitspielen: Rechtsklick
+  auf Start.bat -> "Als Administrator ausfuehren" ist NICHT noetig, das
+  Skript braucht keine Admin-Rechte.
+- Windows kann beim ersten Start eine SmartScreen-Warnung zeigen, weil das
+  Skript nicht signiert ist ("Weitere Informationen" -> "Trotzdem ausfuehren").
+
+LIVE-UPDATES (OPTIONAL)
+------------------------
+Die mitgelieferten Daten sind ein Schnappschuss vom Erstellungsdatum des
+ZIP. Wenn auf diesem Rechner zusaetzlich Python 3 installiert ist, prueft
+Start.bat bei jedem Start, ob der Datenstand aelter als 24h ist, und
+aktualisiert dann automatisch - auch beim allerersten Start, wenn das ZIP
+schon aelter ist. Waehrenddessen ist nichts zu sehen; die Karte oeffnet sich
+danach von selbst (neue Pressemeldungen der
+Polizei Bremen abrufen, geokodieren, Prognose neu berechnen, exportieren).
+Das dauert etwa eine Minute und braucht Internet; schlaegt ein Schritt fehl
+(z.B. kein Internet), zeigt die App einfach weiter den vorhandenen
+Datenstand. Der Ordner "data" enthaelt das komplette bisherige Archiv - was
+einmal gesammelt wurde, geht bei einem Update nicht verloren, auch wenn die
+Polizei die Meldung inzwischen geloescht hat. Fuer Live-Updates einmalig im
+Hauptordner ausfuehren:
+
+    pip install -r requirements.txt
+
+Ohne Python funktioniert die Karte trotzdem ganz normal - nur eben mit dem
+mitgelieferten Datenstand statt taeglicher Aktualisierung.
+
+WAS IST WAS
+------------
+assets/map_local.html       Kartenfenster
+assets/details_local.html   Detail-Fenster (Karten der angeklickten Vorfaelle,
+                             Volltext)
+assets/message_local.html   Volltext einer Polizei- oder Gerichtsmeldung
+assets/map_data.json        die Vorfallsdaten (Datenstand siehe Dateidatum)
+                             (Kartenkacheln kommen live von OpenStreetMap ueber
+                             die Leaflet-Bibliothek, kein mitgeliefertes Bild mehr)
+assets/news_index.json      die beiden Listen (nur Ueberschriften)
+assets/police_other.json    Volltext der Polizeimeldungen ohne Kartenpunkt
+assets/court_cases.json     Volltext der Gerichtsmeldungen
+assets/forecast.json        Prognose und Zeitangaben
+data/                        das Archiv: alle gesammelten Meldungen und
+                             Zwischenergebnisse (Grundlage fuer Updates)
+serve.ps1                   lokaler Mini-Webserver (nur .NET, kein Python
+                             noetig), laeuft im Hintergrund auf Port 8731
+launch_map.ps1               die eigentliche Startlogik
+src/                         die Skripte fuer das Update (nur mit Python
+                             nutzbar; Gerichtsdaten sammelt diese Version nicht)
+
+DATENQUELLE & EINSCHRAENKUNGEN
+--------------------------------
+Alle Daten stammen aus oeffentlichen Pressemeldungen der Polizei Bremen
+(polizei.bremen.de), teils ueber die Wayback Machine geborgen, da die
+Polizei alte Meldungen nach einigen Monaten vom Server nimmt. Delikttyp-
+Zuordnung ist regelbasiert (Stichwortsuche), keine amtliche Statistik.
+Adressen ohne genaue Strassenangabe werden als "Halo" auf den Stadtteil-
+Mittelpunkt gelegt, nicht als exakter Tatort.

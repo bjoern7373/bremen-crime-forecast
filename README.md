@@ -10,9 +10,10 @@ against what actually happened.
 
 - **The data source deletes itself.** Polizei Bremen's press archive
   (`polizei.bremen.de/news/pressestelle/...`) only keeps the last ~5 months
-  of releases live; older chunks 404. `src/scrape.py` falls back to the
-  Wayback Machine for anything already deleted, but that's a one-time rescue
-  -- it won't help for releases nobody ever archived. See `src/seed_urls.py`.
+  of releases live; older chunks 404. So this project keeps its own
+  permanent archive (see "Our own archive" below): whatever was fetched once
+  stays. The Wayback Machine was used once to rescue pages deleted before
+  the project started -- it won't help for releases nobody ever archived.
 - **`presseportal.de` is off-limits.** Its `robots.txt` disallows AI crawlers
   and blocks the date-range query params you'd need for historical
   scraping. We don't scrape it.
@@ -32,7 +33,8 @@ against what actually happened.
 ## Pipeline
 
 ```
-src/scrape.py          -> data/processed/releases.jsonl   (raw parsed press releases)
+src/scrape.py          -> data/archive/releases.jsonl      (every press release ever parsed)
+                        -> data/processed/releases.jsonl    (copy of the archive for the next step)
 src/build_dataset.py   -> data/processed/incidents.csv     (one row per release x Stadtteil)
                         -> data/processed/daily_panel.csv   (date x Stadtteil, zero-filled counts)
 src/backtest.py         walk-forward hotspot backtest against daily_panel.csv
@@ -41,11 +43,55 @@ src/backtest.py         walk-forward hotspot backtest against daily_panel.csv
 Setup:
 ```
 pip install -r requirements.txt
-python src/scrape.py --no-cache
+python src/scrape.py --update
 python src/build_dataset.py
 python src/backtest.py --target n_total --k 5 --horizon 7
 python src/backtest.py --target n_Einbruch --k 3 --horizon 14
 ```
+
+### Our own archive (nothing fetched once is ever dropped)
+
+The whole point of running this daily is that the dataset gets better the
+longer it runs, so `src/scrape.py` treats our own copies as the archive of
+record rather than re-deriving everything from the web each day:
+
+- `data/raw/` holds every archive page as fetched. A stored page is never
+  replaced by a version that has lost entries -- if the police remove a
+  release from a page, the previous version is kept alongside as
+  `<page>@<date>.html` and both are parsed.
+- `data/archive/releases.jsonl` holds every release ever parsed and only
+  grows. Re-parsing refreshes existing records (so parser fixes apply
+  retroactively) but never removes one, and a damaged archive file stops the
+  run instead of being overwritten. Its copy in `data/processed/` is read as
+  well, so a file that got emptied or cut short loses nothing.
+- The press office types its release ids by hand, so an id alone is not
+  trusted: a release only updates a stored one if it recognisably is the same
+  release (similar text, or the same title). A re-used or mistyped id is
+  filed next to the first release instead of replacing it, and a version that
+  has become poorer (cut-off download, text shortened in place, a field gone)
+  never replaces a richer one.
+- `python src/scrape.py --update` (the daily run) re-downloads the newest
+  page we hold, the one before it and everything newer -- older ones can't
+  change -- and takes everything else from `data/raw/`. A network failure, a
+  deleted page or an unreachable Wayback Machine therefore can't abort the
+  update or cost any data; the run just reports that today's new releases
+  aren't in yet (exit code 3, so the update is retried instead of counting
+  as done -- at the next start of the map, but not within two hours of the
+  last attempt; 1 or 2 mean the script itself broke).
+- `python src/backfill_wayback.py` recovers archive pages the press office
+  had already deleted before we started collecting, from the Wayback Machine
+  (`--dry-run` lists what is available).
+- New archive pages (the press office starts one every few weeks) are
+  discovered automatically from the press overview page and RSS feed and
+  remembered in `data/known_chunks.json`; `src/seed_urls.py` is only the
+  hand-collected starting list.
+- Two copies exist at all times: this folder (including its full git
+  history) and the GitHub repository the daily run pushes to.
+
+`python tests/test_scrape_archive.py` replays the loss scenarios (page loses
+an entry, entry shortened in place, cut-off download, re-used id, network
+down, page deleted, Wayback unreachable, damaged or emptied archive, two new
+pages since the last run) without touching the network.
 
 ## Backtest methodology
 
@@ -61,26 +107,62 @@ models are compared:
   (simplified ETAS/near-repeat kernel)
 - `dow_seasonal`: historical average for that day-of-week
 
-Reported as **Precision@k** and **PAI** (Predictive Accuracy Index =
-precision@k / chance rate; PAI 1.0 = no better than flagging k random
-Stadtteile). As of the first ~23 months of recovered data: overall crime
-shows a modest real signal (PAI ~1.1), but Einbruch-specific prediction does
-not beat chance yet (PAI < 1) -- there are simply too few burglaries (n=63)
-in the dataset so far for a reliable signal; this should improve as the
-daily scheduled run accumulates more history.
+Reported per model: **precision@k** (share of the flagged Stadtteile that
+really had an incident in the window), **random** (what flagging k Stadtteile
+at random would have scored on the same days, i.e. the share of all
+Stadtteile with an incident) and their ratio, **lift**. Two more models put
+the first three into perspective: `ensemble` (what the map uses) and
+`long_run`, which always flags the Stadtteile with the most incidents so far
+and knows nothing about timing.
+
+Only days we actually hold press releases for are tested: the history has
+holes (archive pages the press office had deleted before collection began),
+and a window we cannot see into is neither a hit nor a miss.
+
+Result as of 11 October 2026 (269 test days): the map's model is right for
+about 67 % of flagged Stadtteile, random flagging for 35 % -- but `long_run`
+reaches 69 %. (The current figures are printed by `python src/backtest.py`
+and shown in the map's sidebar.) So the marking is far better than chance, yet so far only
+because some Stadtteile are permanently busier; no model here has shown that
+it knows *when*. An earlier version of this file and of the map claimed
+"PAI ~1.3-1.4, 30-40 % better than random": that figure divided by k/23
+instead of by the real random hit rate and tested unobserved days as
+misses, and is withdrawn.
 
 ## Forecast overlay (red halo)
 
-`src/forecast.py` runs the exact same `exp_decay` + `dow_seasonal` models
-from `backtest.py` (same defaults: k=5, horizon=7, half_life=7) once more,
-on all available history, to score *today* instead of a past day -- an
-ensemble (mean of min-max-normalized scores) ranks all 23 Stadtteile, and
-the top 5 are flagged `elevated: true`. Written to
-`data/processed/forecast.json` -> copied to `assets/forecast.json`. The map
-renders these as a toggleable red halo layer (sidebar: "Prognose"), always
-labeled with the backtested PAI so it's clear this is a statistical
-tendency (~30-40% better than random), not a prediction of individual
-events.
+`src/forecast.py` runs the `ensemble` model from `backtest.py` (same
+defaults: k=5, horizon=7, half_life=7) once more, on all available history,
+to score *today* instead of a past day; the top 5 of the 23 Stadtteile are
+flagged `elevated: true`. Written to `data/processed/forecast.json` ->
+copied to `assets/forecast.json`. The map renders these as a toggleable red
+halo layer (sidebar: "Prognose"). The sidebar note is generated from the
+backtest of that same day (hit rate, random, "always the busiest"), so it
+cannot go stale or claim more than was measured.
+
+**Time statements** (`src/timing.py`): per Stadtteil, for any report and
+for its most frequently reported offense types, by when the next police
+report is to be expected -- two "by when" marks, shown in a box in the
+corner of the map while the mouse is over a red halo ("in rund 50 % der
+Fälle binnen 8 Tagen, in rund 75 % binnen 18 Tagen"). The rate is estimated
+from observed days only (holes in the history count neither as time nor as
+events), thin data is pulled towards the city-wide rate of that offense type
+scaled by the Stadtteil's share of all reports, and the same statements are
+replayed over the past (`timing.backtest`) for the Stadtteile the map would
+have marked on each day, from what had been published by then. The model
+aims at 50 % and 80 %; the percentages the map prints are the measured hit
+rates of those replayed statements, rounded to 5 % -- so where the model is
+too optimistic (offense-level statements: about 43 % and 71 %), the reader
+sees what it delivered, not what it intended. `python src/timing.py
+--compare` shows how the settings were chosen. A "report" is a press
+release, dated by its publication -- not every offense is reported there.
+
+Dates: the publication day of every release is decided once, in
+`export_news.release_days()` -- the date the press office typed, unless it
+cannot be right (missing, in the future, or outside the dates of the
+releases numbered around it and not fitting the archive page it sits on);
+then its neighbour's date is used. No incident is dated after its own
+publication (announcements of future events) or in the future.
 
 ## Gerichtsurteile (court verdicts -- experimental, read this before trusting it)
 
@@ -153,12 +235,12 @@ to say anything. Re-run `python src/correlate.py` as the dataset grows.
 ## Map
 
 ```
-src/geocode.py             Nominatim geocoding: 19 Stadtteil centroids (cached once) +
+src/geocode.py             Nominatim geocoding: 23 Stadtteil centroids (cached once) +
                             per-incident street addresses (cached, rate-limited 1 req/sec,
                             bounded to Bremen's bbox so short names don't match Bremerhaven)
                             -> data/processed/incidents_geo.csv
 src/fetch_basemap.py       one-time stitch of OSM raster tiles into assets/bremen_base_map.png
-                            (zoom 13, covers all 19 Stadtteile) -- re-run only if the base
+                            (zoom 13, covers the Stadtteile) -- re-run only if the base
                             map needs refreshing, not part of the daily job
 src/find_series.py         spatio-temporal series detection (see below) -> data/processed/series.json
 src/export_map_data.py     -> assets/map_data.json (compact per-incident data for the page,
@@ -258,24 +340,41 @@ of this due to the Artifact sandbox's CSP):
 ```
 assets/map_local.html       the map window -- clicking a point/halo broadcasts
                              the incident (via BroadcastChannel) to...
-assets/details_local.html   ...the side window, which lists clicked incidents
-                             with a link that opens...
-assets/message_local.html   ...the full press-release text in its own window/tab,
-                             plus a link to the (possibly dead) original source URL
-src/launch_map.py           the launcher: update check, local server, opens both
-                             windows positioned side by side (via Edge --new-window)
-src/update_gate.py          24h staleness check (data/.last_update.txt) so launching
-                             the shortcut repeatedly in one day doesn't re-scrape
-                             every time; run_daily.bat marks it done too
+assets/details_local.html   ...the side window ("Detail-Fenster"), which lists clicked
+                             incidents and shows one full text at a time, loading...
+assets/message_local.html   ...the full text of a police release (?id= / ?pm=) or a
+                             court release (?court=), plus a link to the original
+src/launch_map.py           the launcher: update check, local server
+                             (src/serve_no_cache.py), opens the map window at 65 %
+                             of the screen (via Edge --new-window)
+src/update_gate.py          is an update due? Once every 24h (data/.last_update.txt,
+                             written by run_daily.bat when an update completed); a
+                             failed one is retried, but not within 2h of the last
+                             attempt (data/.last_attempt.txt)
 ```
 
-Double-clicking the shortcut: runs `update_gate.py`; if the last update was
->24h ago (PC time), runs the full `run_daily.bat` pipeline first (this can
-take several minutes the first time or after a long gap); then makes sure
-`python -m http.server 8731` is serving `assets/` and opens two positioned
-Edge windows. The three local pages talk to each other via `BroadcastChannel`
-(same-origin, no server round-trip) and plain `<a target="_blank">` links
-(never popup-blocked, unlike `window.open()`).
+Double-clicking the shortcut: runs `update_gate.py`; if an update is due,
+runs the full `run_daily.bat` pipeline first (a minute or two); then makes
+sure `src/serve_no_cache.py` is serving `assets/` on port 8731 and opens the
+map window. The map opens the Detail-Fenster itself (`window.open`, in the
+remaining third of the screen); the two talk over a `BroadcastChannel`
+(same-origin, no server round-trip), and every request is acknowledged, so
+the map notices when that window is gone.
+
+**Reading lists.** Right of the map, the panel "Polizeimeldungen /
+Gerichtsverfahren" lists every police press release and every court entry we
+hold, newest first (`src/export_news.py` -> `assets/news_index.json`,
+headlines only). A click shows the full text in the Detail-Fenster. Where
+there is no room for a second window (maximized browser window, phone), the
+browser blocks it or it doesn't answer, the text opens inside the map page
+instead; `?reader=window` / `?reader=inline` in the map's address forces one
+of the two. Every police release is addressed by its lasting key (its
+press-release number, `message_local.html?pm=<key>`), never by its position
+in a data file. Police releases that are not on the map (no Bremen Stadtteil
+recognised) are listed too; their text is in `assets/police_other.json`. Court
+entries are the Landgericht press releases since 2024 (`court_cases.json`,
+PDF text with its line breaks re-joined) and the Amtsgericht hearings logged
+since October 2026. Headlines already opened are remembered in the browser.
 
 To recreate the shortcut (e.g. after moving the project folder), re-run the
 PowerShell `WScript.Shell` snippet that created
@@ -290,9 +389,33 @@ captured before Polizei Bremen deletes them. Logs go to `logs/daily.log`.
 Manage it with `schtasks /query /tn BremenCrimeForecastDaily` or via Task
 Scheduler GUI (`taskschd.msc`).
 
-After exporting, the task also copies `assets/map_data.json` into `docs/`
-and pushes to GitHub, which auto-publishes the updated data to the public
-site below.
+After exporting, the task also copies the data files the pages load
+(`map_data.json`, `forecast.json`, `court_stats.json`, `news_index.json`,
+`police_other.json`, `court_cases.json`) into `docs/` and pushes to GitHub,
+which auto-publishes the updated data to the public site below.
+
+`src/repo_guard.py` runs between `git add` and `git commit`: GitHub rejects
+any push containing a file over 100 MB, and once such a file is in a commit
+every later push fails too. A file of 50 MB or more is therefore taken out
+of the commit (it stays on this PC) and reported; the repository size
+(recommended limit 1 GB) and the result of every push are written to
+`assets/repo_status.json`, which the local map shows at the bottom of its
+sidebar. As of October 2026 the repository is about 20 MB and a daily
+update adds well under 0.1 MB.
+
+## Standalone package
+
+`python src/build_package.py` builds `dist/BremenTatkarte/` and
+`dist/BremenTatkarte.zip`: the map for a PC without this project. It takes
+the launcher files from `package/` (Start.bat, launch_map.ps1, serve.ps1,
+LIESMICH.txt -- PowerShell only, no Python needed to view), the pages and
+data files from `assets/`, our whole archive from `data/`, and from `src/`
+exactly the scripts its own update needs (the steps named in
+`package/launch_map.ps1` plus everything they import). Before zipping, the
+package is checked: its own export, run on its own data, must reproduce the
+data files it ships -- so pages, data and scripts cannot drift apart. Run
+the daily pipeline first if `data/` has changed since the last export.
+The package does not collect court data; it keeps the court list it ships.
 
 ## Public site (GitHub Pages)
 

@@ -4,3 +4,6 @@ data/.last_update.txt
 dist/
 logs/
 .claude/
+assets/repo_status.json
+assets/_test_*.html
+data/.last_attempt.txt
