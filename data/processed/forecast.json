@@ -7,7 +7,7 @@
     "n_test_days": 269,
     "hit_rate": 0.668,
     "random": 0.35,
-    "always_busiest": 0.691
+    "always_busiest": 0.692
   },
   "timing": {
     "as_of": "2026-10-12",
@@ -88,7 +88,7 @@
           },
           {
             "category": "Einbruch",
-            "rate_per_30d": 1.36,
+            "rate_per_30d": 1.35,
             "p14": 0.46,
             "p30": 0.72,
             "t50": 16,
@@ -117,7 +117,7 @@
         "offenses": [
           {
             "category": "Raub",
-            "rate_per_30d": 1.16,
+            "rate_per_30d": 1.15,
             "p14": 0.41,
             "p30": 0.66,
             "t50": 19,
@@ -164,7 +164,7 @@
         "offenses": [
           {
             "category": "Koerperverletzung",
-            "rate_per_30d": 0.48,
+            "rate_per_30d": 0.47,
             "p14": 0.19,
             "p30": 0.36,
             "t50": 49,
@@ -184,7 +184,7 @@
             "category": "Waffendelikt",
             "rate_per_30d": 0.33,
             "p14": 0.14,
-            "p30": 0.27,
+            "p30": 0.26,
             "t50": 74,
             "t80": null,
             "n_reports": 3
@@ -261,7 +261,7 @@
             "rate_per_30d": 0.26,
             "p14": 0.11,
             "p30": 0.22,
-            "t50": 95,
+            "t50": 96,
             "t80": null,
             "n_reports": 5
           },
@@ -279,7 +279,7 @@
             "rate_per_30d": 0.16,
             "p14": 0.07,
             "p30": 0.14,
-            "t50": 173,
+            "t50": 174,
             "t80": null,
             "n_reports": 3
           }
@@ -306,10 +306,10 @@
           {
             "category": "Drogendelikt",
             "rate_per_30d": 0.43,
-            "p14": 0.18,
+            "p14": 0.17,
             "p30": 0.33,
             "t50": 55,
-            "t80": 150,
+            "t80": 151,
             "n_reports": 9
           },
           {
@@ -334,11 +334,58 @@
       }
     },
     {
+      "stadtteil": "Gröpelingen",
+      "lat": 53.11671,
+      "lon": 8.76305,
+      "score": 0.234,
+      "rank": 7,
+      "elevated": false,
+      "timing": {
+        "any": {
+          "rate_per_30d": 2.81,
+          "p14": 0.71,
+          "p30": 0.92,
+          "t50": 8,
+          "t80": 19,
+          "n_reports": 40
+        },
+        "offenses": [
+          {
+            "category": "Raub",
+            "rate_per_30d": 0.7,
+            "p14": 0.27,
+            "p30": 0.48,
+            "t50": 32,
+            "t80": 82,
+            "n_reports": 10
+          },
+          {
+            "category": "Einbruch",
+            "rate_per_30d": 0.31,
+            "p14": 0.13,
+            "p30": 0.25,
+            "t50": 80,
+            "t80": null,
+            "n_reports": 6
+          },
+          {
+            "category": "Waffendelikt",
+            "rate_per_30d": 0.28,
+            "p14": 0.12,
+            "p30": 0.23,
+            "t50": 89,
+            "t80": null,
+            "n_reports": 5
+          }
+        ]
+      }
+    },
+    {
       "stadtteil": "Osterholz",
       "lat": 53.05551,
       "lon": 8.95071,
       "score": 0.222,
-      "rank": 7,
+      "rank": 8,
       "elevated": false,
       "timing": {
         "any": {
@@ -385,7 +432,7 @@
       "lat": 53.07963,
       "lon": 8.77022,
       "score": 0.218,
-      "rank": 8,
+      "rank": 9,
       "elevated": false,
       "timing": {
         "any": {
@@ -432,7 +479,7 @@
       "lat": 53.05194,
       "lon": 8.7423,
       "score": 0.201,
-      "rank": 9,
+      "rank": 10,
       "elevated": false,
       "timing": {
         "any": {
@@ -479,7 +526,7 @@
       "lat": 53.18179,
       "lon": 8.57263,
       "score": 0.196,
-      "rank": 10,
+      "rank": 11,
       "elevated": false,
       "timing": {
         "any": {
@@ -526,7 +573,7 @@
       "lat": 53.09468,
       "lon": 8.80828,
       "score": 0.181,
-      "rank": 11,
+      "rank": 12,
       "elevated": false,
       "timing": {
         "any": {
@@ -573,7 +620,7 @@
       "lat": 53.03885,
       "lon": 8.83796,
       "score": 0.17,
-      "rank": 12,
+      "rank": 13,
       "elevated": false,
       "timing": {
         "any": {
@@ -620,11 +667,11 @@
       "lat": 53.17052,
       "lon": 8.62388,
       "score": 0.16,
-      "rank": 13,
+      "rank": 14,
       "elevated": false,
       "timing": {
         "any": {
-          "rate_per_30d": 2.27,
+          "rate_per_30d": 2.28,
           "p14": 0.64,
           "p30": 0.87,
           "t50": 10,
@@ -634,7 +681,7 @@
         "offenses": [
           {
             "category": "Einbruch",
-            "rate_per_30d": 0.5,
+            "rate_per_30d": 0.49,
             "p14": 0.2,
             "p30": 0.37,
             "t50": 47,
@@ -647,7 +694,7 @@
             "p14": 0.17,
             "p30": 0.33,
             "t50": 56,
-            "t80": 152,
+            "t80": 153,
             "n_reports": 4
           },
           {
@@ -667,7 +714,7 @@
       "lat": 53.16109,
       "lon": 8.69172,
       "score": 0.149,
-      "rank": 14,
+      "rank": 15,
       "elevated": false,
       "timing": {
         "any": {
@@ -685,7 +732,7 @@
             "p14": 0.22,
             "p30": 0.4,
             "t50": 42,
-            "t80": 110,
+            "t80": 111,
             "n_reports": 5
           },
           {
@@ -714,7 +761,7 @@
       "lat": 53.07865,
       "lon": 8.87757,
       "score": 0.109,
-      "rank": 15,
+      "rank": 16,
       "elevated": false,
       "timing": {
         "any": {
@@ -737,7 +784,7 @@
           },
           {
             "category": "Raub",
-            "rate_per_30d": 0.24,
+            "rate_per_30d": 0.23,
             "p14": 0.1,
             "p30": 0.2,
             "t50": 110,
@@ -761,7 +808,7 @@
       "lat": 53.10362,
       "lon": 8.88188,
       "score": 0.078,
-      "rank": 16,
+      "rank": 17,
       "elevated": false,
       "timing": {
         "any": {
@@ -799,53 +846,6 @@
             "t50": null,
             "t80": null,
             "n_reports": 2
-          }
-        ]
-      }
-    },
-    {
-      "stadtteil": "Gröpelingen",
-      "lat": 53.11671,
-      "lon": 8.76305,
-      "score": 0.075,
-      "rank": 17,
-      "elevated": false,
-      "timing": {
-        "any": {
-          "rate_per_30d": 2.58,
-          "p14": 0.68,
-          "p30": 0.9,
-          "t50": 9,
-          "t80": 21,
-          "n_reports": 39
-        },
-        "offenses": [
-          {
-            "category": "Raub",
-            "rate_per_30d": 0.69,
-            "p14": 0.27,
-            "p30": 0.48,
-            "t50": 33,
-            "t80": 84,
-            "n_reports": 10
-          },
-          {
-            "category": "Einbruch",
-            "rate_per_30d": 0.3,
-            "p14": 0.13,
-            "p30": 0.24,
-            "t50": 83,
-            "t80": null,
-            "n_reports": 6
-          },
-          {
-            "category": "Waffendelikt",
-            "rate_per_30d": 0.27,
-            "p14": 0.12,
-            "p30": 0.23,
-            "t50": 92,
-            "t80": null,
-            "n_reports": 5
           }
         ]
       }
