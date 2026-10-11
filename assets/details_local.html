@@ -18,10 +18,12 @@
     }
   }
   * { box-sizing: border-box; }
+  html, body { height: 100%; }
   body {
     margin: 0; background: var(--page-plane); color: var(--text-primary);
-    font-family: system-ui, -apple-system, "Segoe UI", sans-serif; padding: 12px;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   }
+  #listView { padding: 12px; }
   h1 { font-size: 15px; margin: 0 0 2px 0; }
   .hint { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; }
   .empty { font-size: 12px; color: var(--text-muted); padding: 20px 4px; text-align: center; }
@@ -36,32 +38,94 @@
     color: var(--cat-color, var(--accent)); margin-bottom: 4px;
   }
   .card-cat .swatch { width: 9px; height: 9px; border-radius: 50%; background: var(--cat-color, var(--accent)); }
+  /* the category colours are chosen for a light page; lighten the label on a dark one */
+  @media (prefers-color-scheme: dark) {
+    .card-cat { color: color-mix(in srgb, var(--cat-color, var(--accent)) 55%, white); }
+  }
   .card-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; line-height: 1.3; }
   .card-meta { font-size: 11px; color: var(--text-secondary); margin-bottom: 2px; }
   .card-prec { font-size: 10px; color: var(--text-muted); font-style: italic; margin-bottom: 8px; }
-  .card-btn {
+  .card-btn, .bar-btn {
     display: inline-block; font-size: 11px; font-weight: 600; padding: 5px 10px;
     border-radius: 6px; border: 1px solid var(--accent); color: var(--accent);
-    background: transparent; cursor: pointer;
+    background: transparent; cursor: pointer; text-decoration: none; font-family: inherit;
   }
-  .card-btn:hover { background: var(--accent); color: white; }
+  .card-btn:hover, .bar-btn:hover { background: var(--accent); color: white; }
+
+  /* the reader: one full text at a time, opened from the map's lists or from a card */
+  #readerView { display: none; flex-direction: column; height: 100%; }
+  body.reading #readerView { display: flex; }
+  body.reading #listView { display: none; }
+  .reader-bar {
+    flex: 0 0 auto; display: flex; gap: 8px; align-items: center; padding: 8px 12px;
+    border-bottom: 1px solid var(--border); background: var(--surface-1);
+  }
+  .reader-bar .spacer { flex: 1; }
+  #readerFrame { flex: 1; width: 100%; border: 0; background: var(--surface-1); }
 </style>
 </head>
 <body>
-  <h1>Ausgewählte Vorfälle</h1>
-  <div class="hint">Klicke einen Punkt oder Halo auf der Karte. Die Meldung öffnet sich in einem eigenen Fenster.</div>
-  <div id="list"><div class="empty">Noch nichts ausgewählt.</div></div>
+  <div id="listView">
+    <h1>Ausgewählte Vorfälle</h1>
+    <div class="hint">Klicke einen Punkt oder Halo auf der Karte – oder eine Überschrift in den Listen
+      „Polizeimeldungen“ / „Gerichtsverfahren“ neben der Karte. Der vollständige Text erscheint hier.</div>
+    <div id="list"><div class="empty">Noch nichts ausgewählt.</div></div>
+  </div>
+
+  <div id="readerView">
+    <div class="reader-bar">
+      <button type="button" class="bar-btn" id="backBtn">&larr; Auswahl</button>
+      <span class="spacer"></span>
+      <a class="bar-btn" id="ownWindowLink" href="#" target="_blank" rel="noopener">In eigenem Fenster &#8599;</a>
+    </div>
+    <iframe id="readerFrame" title="Vollständiger Text"></iframe>
+  </div>
 
 <script>
 (function () {
   var list = document.getElementById("list");
+  var frame = document.getElementById("readerFrame");
   var seen = [];
 
+  function germanDate(iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || "");
+    return m ? m[3] + "." + m[2] + "." + m[1] : String(iso || "");
+  }
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
   }
+
+  // Show one full text. Only our own message page is ever loaded here, whatever a message asks for.
+  function read(url) {
+    if (typeof url !== "string" || url.indexOf("message_local.html?") !== 0) return false;
+    document.getElementById("ownWindowLink").href = url;
+    // replace, not navigate: the texts read here shouldn't pile up in this window's history
+    try { frame.contentWindow.location.replace(url + "&embed=1"); } catch (e) { frame.src = url + "&embed=1"; }
+    document.body.classList.add("reading");
+    return true;
+  }
+  function showList() {
+    document.body.classList.remove("reading");
+  }
+  document.getElementById("backBtn").addEventListener("click", showList);
+  // Escape goes back to the list, also while the keyboard is inside the text (message_local.html passes it on)
+  document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") showList(); });
+  window.addEventListener("message", function (ev) {
+    if (ev.origin === location.origin && ev.data && ev.data.type === "reader-escape") showList();
+  });
+  // a link followed inside the text (police report <-> court release): keep
+  // "In eigenem Fenster" pointing at what is actually shown
+  frame.addEventListener("load", function () {
+    try {
+      var shown = frame.contentWindow.location;
+      if (shown.pathname.slice(-18) === "message_local.html") {
+        document.getElementById("ownWindowLink").href =
+          "message_local.html" + shown.search.replace(/[?&]embed=1/, "").replace(/^&/, "?");
+      }
+    } catch (e) { /* not our page: leave the link as it is */ }
+  });
 
   function render() {
     if (seen.length === 0) {
@@ -74,15 +138,25 @@
       var card = document.createElement("div");
       card.className = "card";
       card.style.setProperty("--cat-color", color);
+      // by the release's lasting key; its "id" is only today's position in the data file
+      var url = "message_local.html?" + (d.k !== undefined ? "pm=" + encodeURIComponent(d.k) : "id=" + encodeURIComponent(d.id));
       card.innerHTML =
         '<div class="card-cat"><span class="swatch"></span>' + escapeHtml(cat) + '</div>' +
         '<div class="card-title">' + escapeHtml(d.title) + '</div>' +
-        '<div class="card-meta">' + escapeHtml(d.date || "") + ' &middot; ' + escapeHtml(d.stadtteil || "") + '</div>' +
+        '<div class="card-meta">' + escapeHtml([d.pub ? "Meldung vom " + germanDate(d.pub) : "",
+          d.date && d.date !== d.pub ? "Tatzeit: " + germanDate(d.date) : "", d.stadtteil || ""]
+          .filter(function (x) { return x; }).join(" · ")) + '</div>' +
         '<div class="card-meta">' + escapeHtml(d.ort || "") + '</div>' +
         '<div class="card-prec">' + (d.prec === "a" ? "genaue Adresse" : "nur Stadtteil-Angabe (ungefähre Lage)") + '</div>' +
-        (d.series_id !== undefined ? '<div class="card-prec" style="color:#000;font-weight:700;font-style:normal;">⚭ Teil einer möglichen Serie (' + d.series_n + ' Taten, gleiche Kategorie, räumlich/zeitlich nah)</div>' : '') +
-        (d.court_match ? '<div class="card-prec" style="color:#000;font-weight:700;font-style:normal;">⚖ Möglicherweise zugehöriges Gerichtsverfahren (unsicher, Details in der Meldung)</div>' : '') +
-        '<a class="card-btn" href="message_local.html?id=' + encodeURIComponent(d.id) + '" target="_blank" rel="noopener">Meldung öffnen ↗</a>';
+        (d.series_id !== undefined ? '<div class="card-prec" style="color:var(--text-primary);font-weight:700;font-style:normal;">⚭ Teil einer möglichen Serie (' + escapeHtml(d.series_n) + ' Taten, gleiche Kategorie, räumlich/zeitlich nah)</div>' : '') +
+        (d.court_match ? '<div class="card-prec" style="color:var(--text-primary);font-weight:700;font-style:normal;">⚖ Möglicherweise zugehöriges Gerichtsverfahren (unsicher, Details in der Meldung)</div>' : '') +
+        '<a class="card-btn" href="' + url + '" target="_blank" rel="noopener">Meldung lesen</a>';
+      // the full text opens right here; the plain link stays as a fallback (e.g. middle click)
+      card.querySelector(".card-btn").addEventListener("click", function (ev) {
+        if (ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.button !== 0) return;
+        ev.preventDefault();
+        read(url);
+      });
       list.appendChild(card);
     });
   }
@@ -90,12 +164,23 @@
   if ("BroadcastChannel" in window) {
     var channel = new BroadcastChannel("bremen-tatkarte");
     channel.onmessage = function (ev) {
-      if (ev.data && ev.data.type === "select") {
-        seen.unshift(ev.data);
+      var msg = ev.data || {};
+      // Every request is confirmed ("ack"), so the map knows this window is
+      // really there -- without a confirmation it opens a new one.
+      if (msg.type === "select") {            // a point or halo was clicked on the map
+        seen.unshift(msg);
         if (seen.length > 25) seen.length = 25;
         render();
+        showList();
+        channel.postMessage({ type: "ack", seq: msg.seq });
+      } else if (msg.type === "read") {       // a headline was clicked in the map's lists
+        if (read(msg.url)) channel.postMessage({ type: "ack", seq: msg.seq });
+      } else if (msg.type === "ping") {
+        channel.postMessage({ type: "details-ready" });
       }
     };
+    channel.postMessage({ type: "details-ready" });
+    window.addEventListener("pagehide", function () { channel.postMessage({ type: "details-closed" }); });
   } else {
     list.innerHTML = '<div class="empty">Dieser Browser unterstützt BroadcastChannel nicht.</div>';
   }

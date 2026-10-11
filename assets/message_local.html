@@ -15,15 +15,24 @@
     max-width: 640px; margin: 0 auto; padding: 28px 20px;
     background: var(--surface); color: var(--text); line-height: 1.55;
   }
+  /* shown inside the Detail-Fenster or the map page: no outer margins to spare */
+  body.embed { padding: 14px 12px; }
   .cat {
     display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase;
     letter-spacing: .03em; color: var(--cat-color, var(--accent)); margin-bottom: 10px;
   }
-  h1 { font-size: 21px; margin: 0 0 8px 0; }
+  .cat.court { color: var(--muted); }
+  /* the category colours are chosen for a light page; lighten them on a dark one */
+  @media (prefers-color-scheme: dark) {
+    .cat { color: color-mix(in srgb, var(--cat-color, var(--accent)) 55%, white); }
+    .cat.court { color: var(--muted); }
+  }
+  h1 { font-size: 21px; margin: 0 0 8px 0; overflow-wrap: anywhere; }
+  body.embed h1 { font-size: 18px; }
   .meta { font-size: 13px; color: var(--muted); margin-bottom: 3px; }
   hr { border: none; border-top: 1px solid var(--rule); margin: 16px 0; }
-  .body { font-size: 14px; white-space: pre-wrap; }
-  .src { font-size: 12px; margin-top: 20px; color: var(--muted); }
+  .body { font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .src { font-size: 12px; margin-top: 20px; color: var(--muted); overflow-wrap: anywhere; }
   .court-box {
     margin-top: 20px; padding: 12px 14px; border-radius: 8px;
     border: 1px solid var(--rule); background: color-mix(in srgb, var(--accent) 8%, transparent);
@@ -36,10 +45,20 @@
 </style>
 </head>
 <body>
-  <div id="content" class="loading">Lade Pressemeldung&hellip;</div>
+  <div id="content" class="loading">Lade &hellip;</div>
 
 <script>
 (function () {
+  // What this page shows, by URL parameter:
+  //   ?pm=<key>     a police press release, by its lasting key (its number):
+  //                 looked up among the incidents on the map (map_data.json),
+  //                 then among the releases that are not on it (police_other.json)
+  //   ?court=<id>   a court release or hearing (court_cases.json)
+  //   ?id=<n>       an incident by its position in map_data.json -- only
+  //                 valid within one page load (positions shift daily); kept
+  //                 for links made before releases had keys
+  //   &embed=1      shown inside another page rather than in its own tab
+
   // Real classify.py label for every category (used for the displayed text,
   // so "Sonstiges" never hides what actually happened -- see d.rawcat below).
   var CATS = {
@@ -51,14 +70,18 @@
     "Brandstiftung": "Brandstiftung", "Hasskriminalitaet": "Hasskriminalität",
     "Sonstiges": "Sonstiges"
   };
-  // Color follows the legend's folded category (d.cat) -- only the ones with
-  // their own legend slot get a distinct color, the rest share the grey
-  // "Sonstiges" accent even though their label above shows the real type.
+  // Color follows the legend's folded category -- only the types with their
+  // own legend slot get a distinct color, the rest share the grey accent
+  // even though their label above shows the real type.
   var CAT_COLORS = {
     "Raub": "#2a78d6", "Einbruch": "#eb6834", "Diebstahl": "#1baf7a",
     "Drogendelikt": "#eda100", "Koerperverletzung": "#e87ba4", "Waffendelikt": "#008300",
     "Toetungsdelikt": "#4a3aa7", "Sachbeschaedigung": "#e34948",
     "Fahrzeugaufbruch": "#6366f1", "Sexualdelikt": "#0ea5e9", "Sonstiges": "#898781"
+  };
+  var COURT_STAGES = {
+    auftakt: "Prozessauftakt", urteilstermin: "Urteilstermin", urteil: "Urteil", rechtskraft: "Urteil rechtskräftig",
+    terminaenderung: "Terminänderung", termin: "Verhandlungstermin", anklage: "Anklage", sonstiges: "Mitteilung"
   };
 
   function escapeHtml(s) {
@@ -66,57 +89,161 @@
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
   }
+  function germanDate(iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || "");
+    return m ? m[3] + "." + m[2] + "." + m[1] : (iso || "");
+  }
+  // only ever link to a real web address -- never to whatever a data file happens to contain
+  function webLink(url, label) {
+    if (!/^https?:\/\//i.test(url || "")) return "";
+    return '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(label || url) + '</a>';
+  }
 
   var params = new URLSearchParams(location.search);
-  var id = params.get("id");
+  var embed = params.get("embed") === "1";
+  if (embed) document.body.classList.add("embed");
   var content = document.getElementById("content");
 
-  fetch("map_data.json").then(function (r) { return r.json(); }).then(function (DATA) {
-    var d = DATA.find(function (x) { return String(x.id) === String(id); });
-    if (!d) {
-      content.textContent = "Vorfall nicht gefunden (id=" + id + ").";
-      return;
-    }
-    document.title = d.title;
-    var catLabel = CATS[d.rawcat] || CATS[d.cat] || d.cat;
-    var color = CAT_COLORS[d.cat] || "#2a78d6";
-    document.documentElement.style.setProperty("--cat-color", color);
+  // links between our own pages stay where this page is shown
+  function internalLink(query, label) {
+    return '<a href="message_local.html?' + query + (embed ? "&embed=1" : "") + '"' +
+      (embed ? "" : ' target="_blank" rel="noopener"') + '>' + escapeHtml(label) + '</a>';
+  }
 
-    var html =
-      '<div class="cat">' + escapeHtml(catLabel) + '</div>' +
-      '<h1>' + escapeHtml(d.title) + '</h1>' +
-      '<div class="meta">' + escapeHtml(d.date || "") + ' &middot; ' + escapeHtml(d.stadtteil || "") + '</div>' +
-      '<div class="meta">' + escapeHtml(d.ort || "") + '</div>' +
-      '<hr>' +
-      '<div class="body">' + escapeHtml(d.text || "(kein Volltext gespeichert)") + '</div>';
-
-    if (d.source_url) {
-      html += '<div class="src">Original-Pressemeldung (ggf. inzwischen von der Polizei gelöscht): ' +
-        '<a href="' + escapeHtml(d.source_url) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(d.source_url) + '</a></div>';
-    }
-
-    if (d.court_match) {
-      var cm = d.court_match;
-      var stageLabel = {
-        auftakt: "Prozess läuft (Auftakt der Hauptverhandlung)",
-        urteilstermin: "Urteil demnächst erwartet",
-        urteil: "Urteil gesprochen",
-        rechtskraft: "Urteil rechtskräftig"
-      }[cm.outcome_stage] || cm.outcome_stage;
-      html += '<div class="court-box">' +
-        '<div class="court-title">⚖ Möglicherweise zugehöriges Gerichtsverfahren (Landgericht Bremen)</div>' +
-        '<div>' + escapeHtml(stageLabel) + (cm.outcome_summary ? ' &middot; ' + escapeHtml(cm.outcome_summary) : '') + '</div>' +
-        '<div><a href="' + escapeHtml(cm.pdf_url) + '" target="_blank" rel="noopener noreferrer">Pressemitteilung öffnen (PDF) ↗</a></div>' +
-        '<div class="court-caveat">Automatisch zugeordnet über Delikttyp + Datum + gemeinsamen Straßennamen. ' +
-        'Angeklagte werden in Gerichtsmitteilungen nie namentlich genannt – diese Zuordnung ist eine ' +
-        'Wahrscheinlichkeitseinschätzung, kein amtlicher Nachweis, dass es sich um denselben Fall handelt.</div>' +
-        '</div>';
-    }
+  function show(html, title, color) {
+    if (title) document.title = title;
+    if (color) document.documentElement.style.setProperty("--cat-color", color);
     content.className = "";
     content.innerHTML = html;
-  }).catch(function (err) {
-    content.textContent = "Fehler beim Laden: " + err;
-  });
+  }
+  function fail(message) {
+    content.className = "loading";
+    content.textContent = message;
+  }
+  function load(file) {
+    return fetch(file).then(function (r) {
+      if (!r.ok) throw new Error(file + " nicht gefunden");
+      return r.json();
+    });
+  }
+
+  // d: title, text, ort, source_url, stadtteil, pub (day of the release),
+  //    and either date (day of the incident) or zeit (as the police wrote it)
+  function policeHtml(d, catKey) {
+    var when = [];
+    if (d.pub) when.push("Meldung vom " + germanDate(d.pub));
+    if (d.date && d.date !== d.pub) when.push("Tatzeit: " + germanDate(d.date));
+    else if (d.zeit) when.push("Tatzeit: " + d.zeit);
+    if (!when.length && d.date) when.push(germanDate(d.date));
+    return '<div class="cat">' + escapeHtml(CATS[catKey] || catKey || "Polizeimeldung") + '</div>' +
+      '<h1>' + escapeHtml(d.title) + '</h1>' +
+      '<div class="meta">' + escapeHtml(when.join(" · ")) + '</div>' +
+      (d.stadtteil || d.ort ? '<div class="meta">' + escapeHtml([d.stadtteil, d.ort].filter(function (x) { return x; }).join(" · ")) + '</div>' : '') +
+      '<hr>' +
+      '<div class="body">' + escapeHtml(d.text || "(kein Volltext gespeichert)") + '</div>' +
+      (d.source_url ? '<div class="src">Original-Pressemeldung (ggf. inzwischen von der Polizei gelöscht): ' +
+        webLink(d.source_url) + '</div>' : '');
+  }
+
+  function courtBoxHtml(cm) {
+    var stageLabel = {
+      auftakt: "Prozessauftakt gemeldet (über den Ausgang liegt keine Mitteilung vor)",
+      urteilstermin: "Urteilstermin angekündigt",
+      urteil: "Urteil gesprochen",
+      rechtskraft: "Urteil rechtskräftig"
+    }[cm.outcome_stage] || cm.outcome_stage;
+    return '<div class="court-box">' +
+      '<div class="court-title">⚖ Möglicherweise zugehöriges Gerichtsverfahren (Landgericht Bremen)</div>' +
+      '<div>' + escapeHtml(stageLabel) + (cm.outcome_summary ? ' &middot; ' + escapeHtml(cm.outcome_summary) : '') + '</div>' +
+      (cm.court_id ? '<div>' + internalLink("court=" + encodeURIComponent(cm.court_id), "Mitteilung des Gerichts lesen") + '</div>' : '') +
+      '<div>' + webLink(cm.pdf_url, "Pressemitteilung öffnen (PDF) ↗") + '</div>' +
+      '<div class="court-caveat">Automatisch zugeordnet über Delikttyp + Datum + gemeinsamen Straßennamen. ' +
+      'Angeklagte werden in Gerichtsmitteilungen nie namentlich genannt – diese Zuordnung ist eine ' +
+      'Wahrscheinlichkeitseinschätzung, kein amtlicher Nachweis, dass es sich um denselben Fall handelt.</div>' +
+      '</div>';
+  }
+
+  // records: every map record of one release (one per Stadtteil it names)
+  function showOnMap(records) {
+    var d = records[0];
+    var view = {
+      title: d.title, text: d.text, ort: d.ort, source_url: d.source_url, pub: d.pub, date: d.date,
+      stadtteil: records.map(function (r) { return r.stadtteil; })
+        .filter(function (name, i, all) { return name && all.indexOf(name) === i; }).join(" / ")
+    };
+    var matched = records.filter(function (r) { return r.court_match; })[0];
+    show(policeHtml(view, d.rawcat || d.cat) + (matched ? courtBoxHtml(matched.court_match) : ""),
+         d.title, CAT_COLORS[d.cat] || "#2a78d6");
+  }
+
+  function showRelease(key) {
+    load("map_data.json").then(function (DATA) {
+      var records = DATA.filter(function (x) { return x.k === key; });
+      if (records.length) return showOnMap(records);
+      return load("police_other.json").then(function (other) {
+        var d = Object.prototype.hasOwnProperty.call(other, key) ? other[key] : null;
+        // map data from before releases had keys (a browser copy from just before an update)
+        if (!d && DATA.length && !DATA.some(function (x) { return x.k !== undefined; })) {
+          return fail("Die Daten werden gerade aktualisiert – bitte in ein paar Minuten neu laden.");
+        }
+        if (!d) return fail("Meldung nicht gefunden (" + key + ").");
+        show(policeHtml(d, d.cat) +
+          '<div class="src">Diese Meldung hat keinen Punkt auf der Karte: Sie nennt keinen Bremer Stadtteil, ' +
+          'oder ihre Ortsangabe ließ sich keinem zuordnen (z. B. stadtweite Hinweise, Autobahn, Bremerhaven).</div>',
+          d.title, CAT_COLORS[d.cat] || "#898781");
+      });
+    }).catch(function (err) { fail("Fehler beim Laden: " + err.message); });
+  }
+
+  function showIncident(id) {
+    load("map_data.json").then(function (DATA) {
+      var d = DATA.find(function (x) { return String(x.id) === String(id); });
+      if (!d) return fail("Vorfall nicht gefunden (id=" + id + ").");
+      showOnMap(d.k !== undefined ? DATA.filter(function (x) { return x.k === d.k; }) : [d]);
+    }).catch(function (err) { fail("Fehler beim Laden: " + err.message); });
+  }
+
+  function showCourt(id) {
+    load("court_cases.json").then(function (cases) {
+      var c = cases.find(function (x) { return x.id === id; });
+      if (!c) return fail("Gerichtsmitteilung nicht gefunden (" + id + ").");
+      var isHearing = c.stage === "termin";
+      var html = '<div class="cat court">⚖ ' + escapeHtml(c.court) + ' &middot; ' + escapeHtml(COURT_STAGES[c.stage] || c.stage) + '</div>' +
+        '<h1>' + escapeHtml(c.title) + '</h1>' +
+        '<div class="meta">' + (isHearing ? "Verhandlung am " : "Pressemitteilung vom ") + escapeHtml(germanDate(c.date)) +
+        (isHearing && c.time ? ', ' + escapeHtml(c.time) + ' Uhr' : '') + '</div>' +
+        '<hr>' +
+        '<div class="body">' + escapeHtml(c.text || "(kein Volltext gespeichert)") + '</div>';
+      var source = webLink(c.url, isHearing ? "Wochenübersicht des Amtsgerichts ↗" : "Original-Pressemitteilung (PDF) ↗");
+      if (source) html += '<div class="src">' + source + '</div>';
+      if (isHearing) {
+        html += '<div class="src">Das Amtsgericht veröffentlicht nur die Termine der laufenden Woche und überschreibt sie danach. ' +
+          'Wir schreiben sie seit Oktober 2026 mit; über den Ausgang der Verhandlung teilt das Gericht hier nichts mit.</div>';
+      }
+      var reports = c.reports || [];
+      if (reports.length) {
+        html += '<div class="court-box"><div class="court-title">Möglicherweise zugehörige Polizeimeldung</div>' +
+          reports.map(function (r) {
+            return '<div>' + internalLink("pm=" + encodeURIComponent(r.k), r.title) + ' (' + escapeHtml(germanDate(r.date)) + ')</div>';
+          }).join("") +
+          '<div class="court-caveat">Automatisch zugeordnet über Delikttyp + Datum + gemeinsamen Straßennamen – ' +
+          'eine Wahrscheinlichkeitseinschätzung, kein amtlicher Nachweis, dass es sich um denselben Fall handelt.</div></div>';
+      }
+      show(html, c.title);
+    }).catch(function (err) { fail("Fehler beim Laden: " + err.message); });
+  }
+
+  // Escape while the keyboard is inside this text: tell the page that shows us, so it can close the reader
+  if (embed && window.parent !== window) {
+    document.addEventListener("keydown", function (ev) {
+      if (ev.key === "Escape") window.parent.postMessage({ type: "reader-escape" }, location.origin);
+    });
+  }
+
+  if (params.get("court")) showCourt(params.get("court"));
+  else if (params.get("pm")) showRelease(params.get("pm"));
+  else if (params.get("id") !== null) showIncident(params.get("id"));
+  else fail("Keine Meldung ausgewählt.");
 })();
 </script>
 </body>

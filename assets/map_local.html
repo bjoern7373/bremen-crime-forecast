@@ -4,6 +4,24 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Bremen Tatkarte</title>
+<meta name="theme-color" content="#1f2937">
+<script>
+  // App install and offline use, for the published site only: the local map
+  // (http://localhost) has neither a manifest nor a service worker to offer.
+  if (location.protocol === "https:") {
+    [["manifest", "manifest.json"], ["icon", "icons/icon-192.png"]].forEach(function (pair) {
+      var link = document.createElement("link");
+      link.rel = pair[0];
+      link.href = pair[1];
+      document.head.appendChild(link);
+    });
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", function () {
+        navigator.serviceWorker.register("service-worker.js").catch(function () {});
+      });
+    }
+  }
+</script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
       integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
@@ -125,6 +143,83 @@
     padding: 4px 0 2px 0; font-variant-numeric: tabular-nums;
   }
 
+  /* Right-hand side: the filter/forecast sidebar plus the "Meldungen" reading
+     lists. Side by side when the window is wide enough, stacked otherwise, so
+     the map keeps a usable width on smaller screens. */
+  .right-col { display: flex; flex-direction: column; gap: 10px; width: 270px; flex-shrink: 0; min-height: 0; }
+  .right-col .sidebar { width: auto; flex: 2 1 0; min-height: 0; }
+  .news-panel {
+    flex: 3 1 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
+  }
+  @media (min-width: 1180px) {
+    .right-col { flex-direction: row; width: auto; }
+    .right-col .sidebar { width: 230px; flex: 0 0 auto; }
+    .news-panel { width: 290px; flex: 0 0 auto; }
+  }
+  .news-tabs { display: flex; flex: 0 0 auto; border-bottom: 1px solid var(--border); }
+  .news-tab {
+    flex: 1; font: inherit; font-size: 11px; font-weight: 700; padding: 9px 4px 7px; cursor: pointer;
+    background: transparent; color: var(--text-muted); border: 0; border-bottom: 2px solid transparent;
+  }
+  .news-tab:hover { color: var(--text-primary); }
+  .news-tab.active { color: var(--text-primary); border-bottom-color: var(--text-primary); }
+  .news-tab .n { font-weight: 400; font-variant-numeric: tabular-nums; }
+  .news-hint { flex: 0 0 auto; font-size: 10px; color: var(--text-muted); padding: 6px 10px; line-height: 1.4; }
+  .news-list { flex: 1; min-height: 0; overflow-y: auto; }
+  .news-row {
+    display: block; padding: 7px 10px; border-top: 1px solid var(--border);
+    color: var(--text-primary); text-decoration: none; cursor: pointer;
+  }
+  .news-row:hover { background: var(--page-plane); }
+  .news-row.current { background: var(--page-plane); box-shadow: inset 3px 0 0 var(--text-primary); }
+  .news-row .n-meta { font-size: 10px; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
+  .news-row .n-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .news-row .n-title { font-size: 12px; font-weight: 600; line-height: 1.3; margin-top: 2px; overflow-wrap: anywhere; }
+  .news-row.read .n-title { font-weight: 400; color: var(--text-secondary); }
+  .news-empty { font-size: 12px; color: var(--text-muted); padding: 16px 10px; }
+
+  /* The reader inside the page: used where a second window next to the map
+     isn't possible (maximized window, phone, popup blocked). */
+  .inline-reader {
+    display: none; position: absolute; top: 0; right: 0; bottom: 0; width: min(560px, 100%);
+    z-index: 1100; flex-direction: column; background: var(--surface-1);
+    border-left: 1px solid var(--border); box-shadow: -6px 0 24px rgba(0,0,0,0.18);
+  }
+  .inline-reader.open { display: flex; }
+  /* on a wide map the text gets its own part of the panel instead of covering the map */
+  .map-panel.split #map { right: min(560px, 100%); }
+
+  /* what a red forecast circle stands for -- shown while the mouse is over it */
+  .forecast-box {
+    display: none; position: absolute; left: 10px; bottom: 26px; z-index: 1000; pointer-events: none;
+    width: min(330px, calc(100% - 20px)); max-height: calc(100% - 36px); overflow: hidden;
+    background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border);
+    border-radius: 8px; font-size: 11px; line-height: 1.45; padding: 8px 10px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  }
+
+  /* long explanations in the sidebar stay folded until asked for, so the controls stay in view */
+  .sidebar details { margin-top: 4px; }
+  .sidebar summary { cursor: pointer; color: var(--text-secondary); font-weight: 600; }
+  .sidebar details p { margin: 4px 0 0 0; }
+  .inline-reader-bar {
+    flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+    border-bottom: 1px solid var(--border); font-size: 12px; font-weight: 700;
+  }
+  .inline-reader-bar .spacer { flex: 1; }
+  .inline-reader-bar a, .inline-reader-bar button {
+    font: inherit; font-size: 11px; font-weight: 600; padding: 4px 9px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--text-primary); color: var(--text-primary); background: transparent; text-decoration: none;
+  }
+  .inline-reader iframe { flex: 1; width: 100%; border: 0; background: var(--surface-1); }
+
+  /* something the owner has to know about (upload failing, a file too large) */
+  .alert-bar {
+    display: none; flex: 0 0 auto; background: #fdecec; color: #991b1b; border: 1px solid #f5b5b5;
+    border-radius: 10px; padding: 8px 12px; font-size: 12px; font-weight: 600; line-height: 1.45;
+  }
+
   .bt-dot.faded { opacity: 0.28; transform: scale(0.72); transition: opacity 0.15s, transform 0.15s; }
   .bt-dot { transition: opacity 0.15s, transform 0.15s; }
 
@@ -143,15 +238,23 @@
   .leaflet-tooltip.bt-tooltip {
     background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border);
     border-radius: 8px; font-size: 11px; padding: 7px 9px; box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+    /* Leaflet tooltips don't wrap by default; a long title or the forecast text would be wider than the map */
+    white-space: normal; width: max-content; max-width: 300px;
   }
   .bt-tooltip .t-title { font-weight: 700; margin-bottom: 3px; }
   .bt-tooltip .t-meta { color: var(--text-secondary); }
   .bt-tooltip .t-prec { color: var(--text-muted); font-style: italic; margin-top: 3px; }
   .bt-tooltip .t-hint { color: var(--text-muted); margin-top: 4px; font-size: 10px; }
 
+  /* phones: everything in one scrolling column, the map first */
   @media (max-width: 760px) {
+    body { height: auto; min-height: 100vh; }
     .layout { flex-direction: column; }
-    .sidebar { width: 100%; max-height: 220px; }
+    .map-panel { flex: 0 0 auto; height: 62vh; }
+    .right-col { width: 100%; }
+    .right-col .sidebar { flex: 0 0 auto; max-height: 220px; }
+    .news-panel { flex: 0 0 auto; height: 420px; }
+    .inline-reader { position: fixed; inset: 0; width: 100%; border-left: 0; }
   }
 </style>
 </head>
@@ -186,11 +289,23 @@
     <div class="conn-status" id="connStatus">Detail-Fenster: nicht ge&ouml;ffnet</div>
   </div>
 
+  <div class="alert-bar" id="alertBar"></div>
+
   <div class="layout">
     <div class="map-panel">
       <div id="map"></div>
+      <div class="forecast-box" id="forecastBox"></div>
+      <div class="inline-reader" id="inlineReader">
+        <div class="inline-reader-bar">
+          <span>Volltext</span><span class="spacer"></span>
+          <a id="inlineOwnLink" href="#" target="_blank" rel="noopener">In eigenem Fenster &#8599;</a>
+          <button type="button" id="inlineCloseBtn">Schlie&szlig;en &times;</button>
+        </div>
+        <iframe id="inlineFrame" title="Vollst&auml;ndiger Text"></iframe>
+      </div>
     </div>
 
+    <div class="right-col">
     <div class="sidebar">
       <h2>Delikttyp</h2>
       <div id="legendList"></div>
@@ -231,6 +346,18 @@
 
       <div id="liveSeriesCount" class="explorer-count"></div>
       <div id="seriesInfo" style="font-size:12px; color:var(--text-secondary); line-height:1.5;"></div>
+
+      <div id="repoInfo" style="display:none; font-size:11px; color:var(--text-muted); line-height:1.5; margin-top:12px; padding-top:8px; border-top:1px solid var(--border, #ddd);"></div>
+    </div>
+
+    <div class="news-panel">
+      <div class="news-tabs">
+        <button type="button" class="news-tab active" data-tab="police">Polizeimeldungen <span class="n" id="newsCountPolice"></span></button>
+        <button type="button" class="news-tab" data-tab="court">Gerichtsverfahren <span class="n" id="newsCountCourt"></span></button>
+      </div>
+      <div class="news-hint" id="newsHint"></div>
+      <div class="news-list" id="newsList"><div class="news-empty">Lade &hellip;</div></div>
+    </div>
     </div>
   </div>
 </div>
@@ -276,9 +403,44 @@
 
   var detailsWin = null;
   var openBtn = document.getElementById("openDetailsBtn");
+  // The Detail-Fenster announces itself over the channel ("details-ready"),
+  // so we also know about one that was opened before this page was (re)loaded.
+  var detailsAlive = false;
+  var sideWindowFailed = false;   // it was opened but never answered: read in this page until it reports in
+  var pending = null;             // what the Detail-Fenster has not confirmed yet: { msg, url }
+  var ackTimer = null;
+  var messageSeq = 0;
 
-  function openDetailsWindow() {
-    if (detailsWin && !detailsWin.closed) {
+  var isNarrow = function () { return !!(window.matchMedia && window.matchMedia("(max-width: 760px)").matches); };
+  // Where a full text is shown: in a second window next to the map (the
+  // Detail-Fenster) if there is room for one -- the desktop shortcut opens
+  // the map at 65 % of the screen for exactly that. In a maximized window
+  // the second window would cover the lists, and a phone has no second
+  // window: there the text opens inside this page instead (showInline).
+  // "?reader=window" or "?reader=inline" in the address forces one of the two.
+  var forcedReader = new URLSearchParams(location.search).get("reader");
+  function useSideWindow() {
+    if (!channel || forcedReader === "inline") return false;
+    if (forcedReader === "window") return true;
+    return !isNarrow() && window.outerWidth > 0 && window.outerWidth <= 0.72 * window.screen.availWidth;
+  }
+
+  function setStatus(text, on) {
+    connStatus.textContent = text;
+    connStatus.classList.toggle("on", !!on);
+  }
+  // the button and status line of the Detail-Fenster only where that window is used
+  function refreshReaderMode() {
+    var side = useSideWindow();
+    openBtn.style.display = side ? "" : "none";
+    connStatus.style.display = side ? "" : "none";
+  }
+  refreshReaderMode();
+  window.addEventListener("resize", refreshReaderMode);
+
+  // reload: open/navigate it even if we still hold a handle (it stopped answering)
+  function openDetailsWindow(reload) {
+    if (detailsWin && !detailsWin.closed && reload !== true) {
       detailsWin.focus();
       return;
     }
@@ -292,29 +454,148 @@
     if (detailsWin) {
       openBtn.textContent = "Detail-Fenster offen";
       openBtn.classList.add("open");
-      connStatus.textContent = "Detail-Fenster: verbunden";
-      connStatus.classList.add("on");
-      var poll = setInterval(function () {
+      if (!detailsAlive) setStatus("Detail-Fenster: wird geöffnet …", false);   // "verbunden" once it reports in
+      clearInterval(openDetailsWindow.poll);
+      var poll = openDetailsWindow.poll = setInterval(function () {
         if (!detailsWin || detailsWin.closed) {
           clearInterval(poll);
+          detailsAlive = false;
           openBtn.textContent = "Detail-Fenster ↗";
           openBtn.classList.remove("open");
-          connStatus.textContent = "Detail-Fenster: geschlossen";
-          connStatus.classList.remove("on");
+          setStatus("Detail-Fenster: geschlossen", false);
         }
       }, 1000);
     } else {
-      connStatus.textContent = "Detail-Fenster: vom Browser blockiert (Popup erlauben)";
+      setStatus("Detail-Fenster: vom Browser blockiert – Texte öffnen sich in dieser Seite", false);
     }
   }
 
-  openBtn.addEventListener("click", openDetailsWindow);
+  openBtn.addEventListener("click", function () { openDetailsWindow(); });
   // best-effort auto-open on load -- works in most desktop browsers for a
   // same-origin window.open fired this early, but popup blockers vary, so
   // the button above is the guaranteed fallback the user can always click.
   window.addEventListener("load", function () {
-    setTimeout(openDetailsWindow, 300);
+    setTimeout(function () { if (useSideWindow()) openDetailsWindow(); }, 300);
   });
+
+  // ---- the reader inside this page ----
+  var mapPanel = document.querySelector(".map-panel");
+  var inlineReader = document.getElementById("inlineReader");
+  var inlineFrame = document.getElementById("inlineFrame");
+  var inlineOwnLink = document.getElementById("inlineOwnLink");
+  // latlng: the clicked point, if the text belongs to one -- kept in view
+  function showInline(url, latlng) {
+    inlineOwnLink.href = url;
+    // One step in the browser history for the open reader, so "Back" (the
+    // natural way out on a phone) closes it instead of leaving the map.
+    // The texts themselves replace each other without piling up there.
+    if (!inlineReader.classList.contains("open")) {
+      try { history.pushState({ btReader: true }, ""); } catch (e) { /* no history: the button still closes */ }
+    }
+    try { inlineFrame.contentWindow.location.replace(url + "&embed=1"); } catch (e) { inlineFrame.src = url + "&embed=1"; }
+    inlineReader.classList.add("open");
+    // on a wide map the text gets its own part of the panel instead of covering the map
+    mapPanel.classList.toggle("split", !isNarrow() && mapPanel.clientWidth >= 1000);
+    map.invalidateSize();
+    if (latlng && mapPanel.classList.contains("split")) map.panInside(latlng, { padding: [60, 60] });
+  }
+  function hideInline() {
+    if (!inlineReader.classList.contains("open")) return;
+    inlineReader.classList.remove("open");
+    mapPanel.classList.remove("split");
+    map.invalidateSize();
+    try { inlineFrame.contentWindow.location.replace("about:blank"); } catch (e) { inlineFrame.removeAttribute("src"); }
+  }
+  function closeInline() {
+    if (!inlineReader.classList.contains("open")) return;
+    if (history.state && history.state.btReader) history.back();   // -> "popstate" -> hideInline
+    else hideInline();
+  }
+  window.addEventListener("popstate", hideInline);
+  document.getElementById("inlineCloseBtn").addEventListener("click", closeInline);
+  document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") closeInline(); });
+  // Escape pressed while the keyboard is inside the text (message_local.html passes it on)
+  window.addEventListener("message", function (ev) {
+    if (ev.origin === location.origin && ev.data && ev.data.type === "reader-escape") closeInline();
+  });
+  // a link followed inside the text (police report <-> court release): keep
+  // "In eigenem Fenster" pointing at what is actually shown
+  inlineFrame.addEventListener("load", function () {
+    try {
+      var shown = inlineFrame.contentWindow.location;
+      if (shown.pathname.slice(-18) === "message_local.html") {
+        inlineOwnLink.href = "message_local.html" + shown.search.replace(/[?&]embed=1/, "").replace(/^&/, "?");
+      }
+    } catch (e) { /* not our page: leave the link as it is */ }
+  });
+
+  if (channel) {
+    channel.onmessage = function (ev) {
+      var msg = ev.data || {};
+      if (msg.type === "details-ready") {
+        detailsAlive = true;
+        sideWindowFailed = false;
+        setStatus("Detail-Fenster: verbunden", true);
+        if (pending) channel.postMessage(pending.msg);
+      } else if (msg.type === "ack") {
+        if (pending && msg.seq === pending.msg.seq) {
+          pending = null;
+          clearTimeout(ackTimer);
+          setStatus("Detail-Fenster: angezeigt (" + new Date().toLocaleTimeString("de-DE") + ")", true);
+          // it may be minimized or behind another window: shown is only what can be seen
+          if (detailsWin && !detailsWin.closed) detailsWin.focus();
+        }
+      } else if (msg.type === "details-closed") {
+        detailsAlive = false;
+        if (!detailsWin || detailsWin.closed) setStatus("Detail-Fenster: geschlossen", false);
+      }
+    };
+    channel.postMessage({ type: "ping" });  // is a Detail-Fenster from an earlier visit still open?
+  }
+
+  // Hand something to the Detail-Fenster -- a full text to read
+  // ({type: "read"}) or a clicked incident ({type: "select"}) -- opening that
+  // window first if it isn't there. `url` is the full text that belongs to
+  // it: shown inside this page wherever a second window is not possible, the
+  // browser blocks it, or it doesn't answer.
+  function show(msg, url, latlng) {
+    if (!useSideWindow() || sideWindowFailed) {
+      showInline(url, latlng);
+      return;
+    }
+    msg.seq = ++messageSeq;
+    pending = { msg: msg, url: url };
+    clearTimeout(ackTimer);
+    function giveUp() {
+      if (!pending || pending.msg !== msg) return;
+      pending = null;
+      sideWindowFailed = true;            // don't make the next click wait again
+      setStatus("Detail-Fenster antwortet nicht – Texte öffnen sich in dieser Seite", false);
+      showInline(url, latlng);
+    }
+    function openFresh() {
+      openDetailsWindow(true);            // it answers "details-ready", which delivers `pending`
+      if (!detailsWin) giveUp();          // popup blocked
+      else ackTimer = setTimeout(giveUp, 5000);
+    }
+    if (!detailsAlive) {
+      openFresh();
+      return;
+    }
+    channel.postMessage(msg);
+    ackTimer = setTimeout(function () {   // no confirmation: that window is gone after all
+      if (!pending || pending.msg !== msg) return;
+      detailsAlive = false;
+      openFresh();
+    }, 400);
+  }
+  function openReader(url) { show({ type: "read", url: url }, url); }
+
+  // The full text of an incident. By the release's lasting key -- the "id" is
+  // only its position in today's file and means another release tomorrow.
+  function incidentUrl(d) {
+    return "message_local.html?" + (d.k !== undefined ? "pm=" + encodeURIComponent(d.k) : "id=" + encodeURIComponent(d.id));
+  }
 
   function hashJitter(str, ampDeg) {
     var h = 0;
@@ -451,12 +732,20 @@
   function buildForecastLayer(DATA, fc) {
     var info = document.getElementById("forecastInfo");
     info.innerHTML =
-      "Prognose f&uuml;r " + escapeHtml(fc.generated_for_date) + " (" + fc.horizon_days + " Tage), Top " + fc.k + " von 23 Stadtteilen.<br>" +
-      "<span style=\"font-style:italic;\">" + escapeHtml(fc.model_note) + "</span>";
+      "Prognose für " + escapeHtml(germanDate(fc.generated_for_date)) + " (" + fc.horizon_days + " Tage), Top " + fc.k +
+      " von 23 Stadtteilen. Mit der Maus über einen roten Kreis fahren zeigt, was dort zu erwarten ist." +
+      "<details><summary>Wie verlässlich ist das?</summary><p>" + escapeHtml(fc.model_note) + "</p>" +
+      timingInfoHtml(fc.timing) + "</details>";
 
     var elevated = fc.districts.filter(function (d) { return d.elevated; });
     var maxScore = elevated.reduce(function (m, d) { return Math.max(m, d.score); }, 0.0001);
     var now = new Date();
+    // The details of a forecast circle appear in a fixed box in the corner of
+    // the map, not next to the cursor: they are too long for a tooltip, which
+    // the edge of the map would cut off. The box lets the mouse through, so
+    // the points and halos underneath stay reachable.
+    var box = document.getElementById("forecastBox");
+    function hideBox() { box.style.display = "none"; }
 
     elevated.forEach(function (d) {
       var intensity = d.score / maxScore;  // 0..1 within the elevated set, rank 1 = most vivid
@@ -466,7 +755,9 @@
         fillColor: "#dc2626", fillOpacity: 0.05 + 0.12 * intensity,
         interactive: true, pane: "forecastPane"
       });
-      circle.bindTooltip(forecastTooltipHtml(DATA, d, now), { className: "bt-tooltip", sticky: true });
+      var html = forecastDetailsHtml(DATA, d, now, fc.timing);
+      circle.on("mouseover", function () { box.innerHTML = html; box.style.display = "block"; });
+      circle.on("mouseout", hideBox);
       forecastLayers.push(circle);
     });
 
@@ -476,16 +767,85 @@
         if (show) { if (!map.hasLayer(c)) c.addTo(map); }
         else { if (map.hasLayer(c)) map.removeLayer(c); }
       });
+      if (!show) hideBox();
     }
     applyForecastVisibility();
     document.getElementById("forecastToggle").addEventListener("change", applyForecastVisibility);
+  }
+
+  // Time statements from src/timing.py: by when the next report is to be
+  // expected (t50, t80: days). These are two "by when" marks, not a from-to
+  // range -- half of the time the report comes BEFORE the first one -- and
+  // they are worded that way. t80 is null when that would be more than half
+  // a year away, t50 too if even the first mark is: then there is nothing
+  // useful to say about "when".
+  //
+  // The percentages shown are the measured ones: how often a statement of
+  // that kind came true when it was made in the past, from what was known
+  // then (timing.backtest, on the statements the map shows). The model aims
+  // at 50 % and 80 %; where it is too optimistic, the reader gets what it
+  // actually delivered instead of what it intended.
+  function daysText(n) { return n === 1 ? "1 Tag" : n + " Tagen"; }
+  function daysShort(n) { return n === 1 ? "1 Tag" : n + " Tage"; }
+  function measured(check, level, aimed) {
+    var c = check && check[level];
+    var rate = (c && c.came_true != null && c.n >= 100) ? c.came_true : aimed;
+    return Math.round(rate * 20) * 5;   // to the nearest 5 %
+  }
+  function marksText(w, check) {
+    if (!w || w.t50 == null) return null;
+    var first = "in rund " + measured(check, "50", 0.5) + " % der Fälle binnen " + daysText(w.t50);
+    return w.t80 == null ? first + " (eher selten)"
+                         : first + ", in rund " + measured(check, "80", 0.8) + " % binnen " + daysText(w.t80);
+  }
+  function shortMarks(w, check) {
+    var first = "rund " + measured(check, "50", 0.5) + " %: " + daysShort(w.t50);
+    return w.t80 == null ? first + ", eher selten" : first + ", rund " + measured(check, "80", 0.8) + " %: " + daysShort(w.t80);
+  }
+  function germanDate(iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || "");
+    return m ? m[3] + "." + m[2] + "." + m[1] : String(iso || "");
+  }
+
+  function timingInfoHtml(timing) {
+    if (!timing) return "";
+    var cov = timing.coverage;
+    return "<p><b>Zeitangaben</b> (Datenstand " + germanDate(cov.last_day) + "): „in rund 50 % der Fälle binnen 8 Tagen“ heißt, " +
+      "dass die nächste Polizeimeldung so oft innerhalb dieser Frist kam, als dieselbe Rechnung für frühere Tage gemacht " +
+      "wurde – oft also schon vorher. Die Prozentwerte sind gemessen, nicht versprochen. " +
+      "Grundlage: " + cov.observed_days + " Tage seit " + germanDate(cov.first_day) + ", für die uns die Meldungen vorliegen" +
+      (cov.holes ? " (" + cov.holes + " Lücken im Archiv zählen nicht mit)" : "") + ". " +
+      "Gezählt wird, was die Polizei meldet – nicht jede Tat.</p>";
+  }
+
+  function timeStatementsHtml(d, timing) {
+    var t = d.timing;
+    if (!t || !t.any) return "";
+    var check = (timing && timing.check) || {};
+    var html = "";
+    var anyMarks = marksText(t.any, check.any);
+    if (anyMarks) html += "<div style=\"margin-top:4px;\"><b>Nächste Meldung hier:</b> " + anyMarks + ".</div>";
+    var named = (t.offenses || []).filter(function (o) { return o.t50 != null; });
+    if (named.length) {
+      var first = named[0];
+      html += "<div style=\"margin-top:3px;\"><b>Häufigstes Delikt hier: " + escapeHtml(RAW_LABELS[first.category] || first.category) +
+        "</b> (" + first.n_reports + " von " + t.any.n_reports + " Meldungen) – nächste Meldung dazu " +
+        marksText(first, check.offense) + ".</div>";
+      var rest = named.slice(1).map(function (o) {
+        return escapeHtml(RAW_LABELS[o.category] || o.category) + " (" + o.n_reports + " Meldungen; " + shortMarks(o, check.offense) + ")";
+      });
+      if (rest.length) html += "<div style=\"margin-top:2px;\">Weitere häufige Delikte: " + rest.join("; ") + ".</div>";
+    }
+    if (!html) return "";
+    return html + "<div style=\"color:var(--text-muted); margin-top:3px;\">Die Prozentwerte sind gemessen: " +
+      "So oft trafen solche Angaben im Rückblick-Test ein.</div>";
   }
 
   // "zeitliche Eingrenzung und was passiert": how many Taten in this
   // Stadtteil in the last 7/30/90 days, and which Delikttypen make up that
   // count -- the actual local evidence behind the district's risk score,
   // one hover away instead of a black-box rank number.
-  function forecastTooltipHtml(DATA, d, now) {
+  function forecastDetailsHtml(DATA, d, now, timing) {
     var windows = [7, 30, 90];
     var counts = { 7: 0, 30: 0, 90: 0 };
     var catCounts90 = {};
@@ -527,15 +887,22 @@
       topCat = "Sonstiges";
       topCount = catCountsAll["Sonstiges"];
     }
+    // With time statements (forecast.json from src/timing.py) the most frequent
+    // offense type comes from there, together with its "when" and its share.
+    // The share computed above is only the fallback for a forecast.json
+    // without them -- worded as what it is: the most frequent type, not a
+    // promise about the next report.
+    var timingHtml = timeStatementsHtml(d, timing);
     var nextLikely = "";
-    if (topCat && totalAll > 0) {
+    if (!timingHtml && topCat && totalAll > 0) {
       var pct = Math.round(100 * topCount / totalAll);
-      nextLikely = " &middot; am wahrscheinlichsten als n&auml;chstes: <b>" +
-        escapeHtml(RAW_LABELS[topCat] || topCat) + "</b> (" + pct + "% aller Taten hier)";
+      nextLikely = " &middot; h&auml;ufigstes Delikt hier: <b>" +
+        escapeHtml(RAW_LABELS[topCat] || topCat) + "</b> (" + pct + " % aller Meldungen)";
     }
 
-    return "<b>Prognose: " + escapeHtml(d.stadtteil) + "</b><br>Rang " + d.rank + " von 23 &middot; erh&ouml;htes Risiko" + nextLikely + "<br>" +
-      "<div style=\"margin-top:4px;\">Letzte 7 Tage: <b>" + counts[7] + "</b> Taten &middot; " +
+    return "<b>Prognose: " + escapeHtml(d.stadtteil) + "</b><br>Rang " + d.rank + " von 23 &middot; erh&ouml;htes Risiko" + nextLikely +
+      timingHtml +
+      "<div style=\"margin-top:4px;\">Letzte 7 Tage: <b>" + counts[7] + "</b> " + (counts[7] === 1 ? "Tat" : "Taten") + " &middot; " +
       "30 Tage: <b>" + counts[30] + "</b> &middot; 90 Tage: <b>" + counts[90] + "</b></div>" +
       (catLine ? "<div style=\"margin-top:2px;\">Davon (90 Tage): " + catLine + "</div>" : "") +
       "<div style=\"font-size:11px; color:var(--text-muted); margin-top:4px;\">Statistische Tendenz (siehe Hinweis in der Seitenleiste), keine Vorhersage einzelner Taten.</div>";
@@ -543,6 +910,7 @@
 
   fetch("map_data.json").then(function (r) { return r.json(); }).then(function (DATA) {
     GLOBAL_DATA = DATA;
+    renderCourtInfo();
     buildMarkers(DATA);
     buildLegend(DATA);
     applyFilters(DATA);
@@ -579,24 +947,164 @@
     document.getElementById("stats").textContent = "Fehler: map_data.json konnte nicht geladen werden (" + err + ")";
   });
 
-  // Aggregate Landgericht Bremen stats (src/match_verdicts.py) -- deliberately
-  // NOT a per-incident "clearance rate" claim, just an honest overview of how
-  // many serious-crime court cases exist since 2024 and what stage they're at
-  // (almost all still ongoing -- verdicts typically take 10-20+ months).
-  fetch("court_stats.json").then(function (r) { return r.json(); }).then(function (cs) {
-    var stageLabels = { auftakt: "laufend", urteilstermin: "Urteil demnächst", urteil: "Urteil gesprochen", rechtskraft: "rechtskräftig" };
-    var stageLine = Object.keys(cs.outcome_stage_counts).map(function (k) {
-      return cs.outcome_stage_counts[k] + "x " + (stageLabels[k] || k);
-    }).join(", ");
-    document.getElementById("courtInfo").innerHTML =
-      cs.n_cases_since_2024 + " Verfahren seit 2024 vor dem Landgericht Bremen (schwere Delikte: Raub, " +
-      "Tötung, schwere Körperverletzung, Drogen u.a.) &ndash; " + escapeHtml(stageLine) + ".<br>" +
-      "Davon " + cs.n_matched_to_incidents + " mit vertretbarer Sicherheit einem Vorfall auf dieser Karte " +
-      "zugeordnet (markiert mit ⚖ in der Volltext-Ansicht).<br>" +
-      "<span style=\"font-style:italic;\">" + escapeHtml(cs.note) + "</span>";
-  }).catch(function () {
-    document.getElementById("courtInfo").textContent = "Keine Gerichtsdaten verfügbar.";
+  // What we hold from the courts -- counted from the list itself
+  // (news_index.json), so the numbers always agree with what the list shows;
+  // how many are linked to an incident comes from the map data. Deliberately
+  // no "clearance rate": the Landgericht rarely reports how a case ended.
+  function renderCourtInfo() {
+    var box = document.getElementById("courtInfo");
+    var court = NEWS.court || [];
+    if (!court.length) {
+      box.textContent = "Keine Gerichtsdaten verfügbar.";
+      return;
+    }
+    var releases = court.filter(function (e) { return e.stage !== "termin"; });
+    var counts = {};
+    releases.forEach(function (e) { counts[e.stage] = (counts[e.stage] || 0) + 1; });
+    var stageLine = ["auftakt", "terminaenderung", "urteilstermin", "urteil", "rechtskraft", "anklage", "sonstiges"]
+      .filter(function (k) { return counts[k]; })
+      .map(function (k) { return counts[k] + "× " + (COURT_STAGES[k] || k); }).join(", ");
+    var linked = {};
+    (GLOBAL_DATA || []).forEach(function (d) { if (d.court_match) linked[d.k !== undefined ? d.k : d.id] = true; });
+    var nLinked = Object.keys(linked).length;
+    box.innerHTML =
+      releases.length + " Mitteilungen des Landgerichts Bremen seit 2024 (" + escapeHtml(stageLine) + ")" +
+      (court.length > releases.length ? " und " + (court.length - releases.length) + " Verhandlungstermine des Amtsgerichts" : "") +
+      " – im Wortlaut in der Liste „Gerichtsverfahren“. " +
+      (nLinked === 1 ? "1 Polizeimeldung ist" : nLinked + " Polizeimeldungen sind") +
+      " mit vertretbarer Sicherheit einem Verfahren zugeordnet (⚖ im Volltext)." +
+      "<details><summary>Was sagt das aus?</summary><p>Zu einem Verfahren gibt es oft mehrere Mitteilungen. Wie ein Prozess " +
+      "ausging, teilt das Landgericht nur selten mit – ein gemeldeter Prozessauftakt heißt nicht, dass das Verfahren noch " +
+      "läuft. Angeklagte werden nie namentlich genannt; zuordnen lässt sich ein Verfahren deshalb nur, wenn Delikt, Datum " +
+      "und Straßenname mit einer Polizeimeldung übereinstimmen. Das Amtsgericht veröffentlicht nur die Termine der " +
+      "laufenden Woche; wir schreiben sie seit Oktober 2026 mit.</p></details>";
+  }
+
+  // ---- "Meldungen": every police release and every court entry, newest first.
+  // news_index.json (src/export_news.py) holds the headlines only; a click
+  // shows the full text (openReader).
+  var NEWS = { police: [], court: [] };
+  var newsTab = "police";
+  var newsScroll = { police: 0, court: 0 };   // each list keeps its place while the other is looked at
+  var currentNewsUrl = null;
+  var COURT_STAGES = {
+    auftakt: "Prozessauftakt", urteilstermin: "Urteilstermin", urteil: "Urteil", rechtskraft: "Urteil rechtskräftig",
+    terminaenderung: "Terminänderung", termin: "Verhandlungstermin", anklage: "Anklage", sonstiges: "Mitteilung"
+  };
+  var NEWS_HINTS = {
+    police: "Neueste zuerst, nach dem Datum der Meldung. Ein Klick zeigt den vollständigen Text.",
+    court: "Neueste zuerst: Pressemitteilungen des Landgerichts seit 2024 (zu einem Verfahren oft mehrere) und " +
+      "Verhandlungstermine des Amtsgerichts, die wir seit Oktober 2026 mitschreiben. Ein Klick zeigt den vollständigen Text."
+  };
+
+  // which headlines were already opened -- remembered in this browser only
+  var readKeys = {};
+  try { readKeys = JSON.parse(localStorage.getItem("bt-read") || "{}") || {}; } catch (e) { readKeys = {}; }
+  function markRead(key) {
+    readKeys[key] = 1;
+    try { localStorage.setItem("bt-read", JSON.stringify(readKeys)); } catch (e) { /* private mode: not remembered */ }
+  }
+
+  function newsDate(iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || "");
+    return m ? m[3] + "." + m[2] + "." + m[1] : "ohne Datum";
+  }
+  function newsUrl(tab, e) {
+    return "message_local.html?" + (tab === "court" ? "court=" + encodeURIComponent(e.id) : "pm=" + encodeURIComponent(e.k));
+  }
+
+  function renderNews() {
+    document.querySelectorAll(".news-tab").forEach(function (btn) {
+      btn.classList.toggle("active", btn.getAttribute("data-tab") === newsTab);
+    });
+    document.getElementById("newsHint").textContent = NEWS_HINTS[newsTab];
+    var listEl = document.getElementById("newsList");
+    var entries = NEWS[newsTab] || [];
+    if (!entries.length) {
+      listEl.innerHTML = '<div class="news-empty">Keine Einträge vorhanden.</div>';
+      return;
+    }
+    listEl.innerHTML = entries.map(function (e) {
+      var url = newsUrl(newsTab, e), key, meta;
+      if (newsTab === "court") {
+        key = "court:" + e.id;
+        meta = '<span>' + escapeHtml(newsDate(e.d)) + ' &middot; ' + escapeHtml(String(e.court || "").replace(" Bremen", "")) +
+          ' &middot; ' + escapeHtml(COURT_STAGES[e.stage] || e.stage || "") + '</span>';
+      } else {
+        key = "police:" + e.k;
+        var cat = CATS[e.c] || CATS["Sonstiges"];
+        meta = '<span class="n-dot" style="background:' + cat.color + '"></span><span>' + escapeHtml(newsDate(e.d)) +
+          ' &middot; ' + escapeHtml(RAW_LABELS[e.c] || e.c || "") + (e.s ? ' &middot; ' + escapeHtml(e.s) : '') +
+          (e.m ? '' : ' &middot; nicht auf der Karte') + '</span>';
+      }
+      return '<a class="news-row' + (readKeys[key] ? ' read' : '') + (url === currentNewsUrl ? ' current' : '') +
+        '" href="' + url + '" target="_blank" data-key="' + escapeHtml(key) + '">' +
+        '<div class="n-meta">' + meta + '</div><div class="n-title">' + escapeHtml(e.t) + '</div></a>';
+    }).join("");
+    listEl.scrollTop = newsScroll[newsTab];
+  }
+
+  document.querySelectorAll(".news-tab").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      newsScroll[newsTab] = document.getElementById("newsList").scrollTop;
+      newsTab = btn.getAttribute("data-tab");
+      renderNews();
+    });
   });
+  document.getElementById("newsList").addEventListener("click", function (ev) {
+    var row = ev.target.closest ? ev.target.closest(".news-row") : null;
+    if (!row) return;
+    // Ctrl/Shift/middle click: leave it to the browser (the row is a normal link to the full text)
+    if (ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.button !== 0) return;
+    ev.preventDefault();
+    var previous = this.querySelector(".news-row.current");
+    if (previous) previous.classList.remove("current");
+    row.classList.add("current", "read");
+    currentNewsUrl = row.getAttribute("href");
+    markRead(row.getAttribute("data-key"));
+    openReader(currentNewsUrl);
+  });
+
+  fetch("news_index.json").then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (idx) {
+    NEWS = { police: idx.police || [], court: idx.court || [] };
+    document.getElementById("newsCountPolice").textContent = "(" + NEWS.police.length + ")";
+    document.getElementById("newsCountCourt").textContent = "(" + NEWS.court.length + ")";
+    renderNews();
+    renderCourtInfo();
+  }).catch(function () {
+    document.getElementById("newsList").innerHTML = '<div class="news-empty">Die Listen sind gerade nicht verfügbar.</div>';
+    renderCourtInfo();
+  });
+
+  // Storage gauge and upload status from src/repo_guard.py. The file only
+  // exists next to the local map (it is not published), so on the public
+  // site and in the standalone package this simply shows nothing.
+  // Problems go to the top of the page where they can't be overlooked; the
+  // plain gauge sits at the end of the sidebar.
+  function germanDateTime(s) {   // "2026-10-11 06:01" -> "11.10.2026, 06:01 Uhr"
+    var m = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}:\d{2}))?/.exec(s || "");
+    return m ? m[3] + "." + m[2] + "." + m[1] + (m[4] ? ", " + m[4] + " Uhr" : "") : String(s || "");
+  }
+  fetch("repo_status.json").then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (rs) {
+    var problems = (rs.warnings || []).slice();
+    if (rs.last_push_ok === false) {
+      problems.push("Die öffentliche Karte konnte seit " + germanDateTime(rs.push_failing_since) + " nicht aktualisiert werden" +
+        (rs.push_problem ? " (" + rs.push_problem + ")" : "") + ". Die Daten auf diesem PC sind vollständig.");
+    }
+    if (problems.length) {
+      var bar = document.getElementById("alertBar");
+      bar.innerHTML = problems.map(function (w) { return "<div>&#9888; " + escapeHtml(w) + "</div>"; }).join("");
+      bar.style.display = "block";
+    }
+    if (rs.repo_mb == null) return;
+    var box = document.getElementById("repoInfo");
+    box.innerHTML =
+      "<b>Speicher bei GitHub:</b> " + Math.round(rs.repo_mb) + " von " + rs.repo_limit_mb + " MB belegt (" +
+      (100 * rs.repo_mb / rs.repo_limit_mb).toFixed(1).replace(".", ",") + " %) &middot; gr&ouml;&szlig;te Datei: " +
+      Math.round(rs.largest_file_mb) + " MB (erlaubt: " + rs.file_limit_mb + " MB)" +
+      (rs.last_push_at ? "<br>&Ouml;ffentliche Karte zuletzt aktualisiert: " + escapeHtml(germanDateTime(rs.last_push_at)) : "");
+    box.style.display = "";
+  }).catch(function () {});
 
   function clusterOf(id) {
     for (var i = 0; i < currentClusters.length; i++) {
@@ -659,8 +1167,8 @@
         html += '<div style="color:var(--text-muted); font-style:italic;">' +
           dayGap + ' Tag' + (dayGap === 1 ? "" : "e") + ' und ' + dist + 'm nach der vorherigen Tat</div>';
       }
-      html += '<a href="message_local.html?id=' + encodeURIComponent(d.id) + '" target="_blank" rel="noopener" ' +
-        'style="font-size:11px; color:var(--text-primary);">Meldung öffnen ↗</a>';
+      html += '<a href="' + incidentUrl(d) + '" target="_blank" rel="noopener" data-read="1" ' +
+        'style="font-size:11px; color:var(--text-primary);">Meldung lesen</a>';
       html += '</div>';
     }
     box.innerHTML = html;
@@ -680,7 +1188,7 @@
     var maxDays = Number(document.getElementById("daysSlider").value);
     var minSize = Number(document.getElementById("sizeSlider").value);
     document.getElementById("distVal").textContent = maxDist + " m";
-    document.getElementById("daysVal").textContent = maxDays + " Tage";
+    document.getElementById("daysVal").textContent = maxDays + (maxDays === 1 ? " Tag" : " Tage");
     document.getElementById("sizeVal").textContent = minSize + "+";
 
     var activeCriteria = [];
@@ -764,10 +1272,10 @@
 
       var tipHtml =
         '<div class="t-title">' + escapeHtml(d.title) + '</div>' +
-        '<div class="t-meta">' + escapeHtml(realLabel) + ' · ' + escapeHtml(d.date || "") + '</div>' +
+        '<div class="t-meta">' + escapeHtml(realLabel) + (d.date ? ' · Tatzeit: ' + escapeHtml(germanDate(d.date)) : '') + '</div>' +
         '<div class="t-meta">' + escapeHtml(d.ort || d.stadtteil || "") + '</div>' +
         '<div class="t-prec">' + (d.prec === "a" ? "genaue Adresse" : "nur Stadtteil-Angabe (ungefähre Lage)") + '</div>' +
-        '<div class="t-hint">Klicken für Details im Seitenfenster</div>';
+        '<div class="t-hint">Klicken für Details</div>';
 
       function selectThis(markerForHighlight, ev) {
         if (ev) L.DomEvent.stop(ev);
@@ -807,22 +1315,31 @@
 
       var icon = L.divIcon({
         className: "", html: '<div class="bt-dot" style="background:' + cat.color + '">' + cat.code + '</div>',
-        iconSize: [16, 16], iconAnchor: [8, 8]
+        iconSize: [16, 16], iconAnchor: [8, 8], tooltipAnchor: [10, 0]
       });
       var marker = L.marker([lat, lon], { icon: icon }).addTo(map);
-      marker.bindTooltip(tipHtml, { className: "bt-tooltip", direction: "top", offset: [0, -6] });
+      marker.bindTooltip(tipHtml, { className: "bt-tooltip", direction: "auto" });
       marker.on("click", function (ev) { selectThis(marker, ev); });
 
       markers.push({ layer: marker, data: d, isHalo: false, visible: true });
     });
   }
 
+  // A clicked point or halo: a card in the Detail-Fenster, or -- where there
+  // is no second window -- its full text inside this page.
   function sendToDetails(d, cat, realLabel) {
-    if (!channel) return;
-    channel.postMessage({ type: "select", incident: d, catLabel: realLabel || cat.label, catColor: cat.color });
-    connStatus.textContent = "Detail-Fenster: Auswahl gesendet (" + new Date().toLocaleTimeString("de-DE") + ")";
-    connStatus.classList.add("on");
+    show({ type: "select", incident: d, catLabel: realLabel || cat.label, catColor: cat.color }, incidentUrl(d),
+         [d.lat, d.lon]);
   }
+
+  // "Meldung lesen" links in the series list open like every other full text
+  document.getElementById("seriesInfo").addEventListener("click", function (ev) {
+    var link = ev.target.closest ? ev.target.closest("a[data-read]") : null;
+    if (!link || ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.button !== 0) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    openReader(link.getAttribute("href"));
+  });
 
   function buildLegend(DATA) {
     var legendList = document.getElementById("legendList");
