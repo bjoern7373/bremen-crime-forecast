@@ -21,8 +21,9 @@ from pathlib import Path
 
 import pandas as pd
 
+import export_news
 from classify import classify
-from districts import extract_stadtteile, canonicalize_stadtteil, is_bremerhaven, KNOWN_STADTTEILE
+from districts import stadtteile_of, is_bremerhaven, KNOWN_STADTTEILE
 
 ROOT = Path(__file__).resolve().parent.parent
 PROCESSED_DIR = ROOT / "data" / "processed"
@@ -48,7 +49,8 @@ def _parse_one(source: str) -> date | None:
         return None
 
 
-def parse_incident_date(zeit_raw: str | None, publish_date: str | None) -> date | None:
+def parse_incident_date(zeit_raw: str | None, publish_date: str | date | None,
+                        today: date | None = None) -> date | None:
     """Best-effort extraction of the actual incident date from the free-text
     'Zeit:' field (formats vary a lot: '20.02.26, 13.30 Uhr', '3.7.26, 15 bis
     18.30 Uhr', 'November 2022', ...).
@@ -60,26 +62,35 @@ def parse_incident_date(zeit_raw: str | None, publish_date: str | None) -> date 
     reference and use the publish date instead. Falls back to the publish
     date if nothing parseable is found at all.
     """
-    pub = _parse_one(publish_date) if publish_date else None
+    today = today or date.today()
+    pub = _parse_one(publish_date) if isinstance(publish_date, str) else publish_date
+    if pub is not None and pub > today:
+        pub = None  # a publication day that hasn't come yet is a typo
     tat = _parse_one(zeit_raw) if zeit_raw else None
 
     if tat is not None:
-        if pub is None or abs((tat - pub).days) <= 90:
+        # Nothing can be reported before it happened: a "Zeit:" after the
+        # publication day is an announcement (football match, seminar) or a
+        # typo'd month. Dated in the future it would move "today" for the
+        # forecast and put a quiet Stadtteil on top of the ranking.
+        if pub is not None and 0 <= (pub - tat).days <= 90:
+            return tat
+        if pub is None and tat <= today:
             return tat
     return pub
 
 
-def build_incidents(releases: list[dict]) -> pd.DataFrame:
+def build_incidents(releases: list[dict], today: date | None = None) -> pd.DataFrame:
+    # the publication day of every release, with the press office's mistyped
+    # or missing dates repaired -- decided once, here, for everything downstream
+    key = export_news.key_maker(releases)
+    pub_days = export_news.release_days(releases, key, today)
     rows = []
     for r in releases:
         category = classify(r["title"], r["text"])
-        incident_date = parse_incident_date(r.get("zeit_raw"), r.get("publish_date"))
-        raw_districts = extract_stadtteile(r.get("ort_raw") or "")
-        districts = []
-        for raw_d in raw_districts:
-            for canon in canonicalize_stadtteil(raw_d):
-                if canon not in districts:
-                    districts.append(canon)
+        pub = pub_days.get(key(r.get("pm_id"), r["title"], r.get("publish_date")))
+        incident_date = parse_incident_date(r.get("zeit_raw"), date.fromisoformat(pub) if pub else None, today)
+        districts = stadtteile_of(r.get("ort_raw"))
         bhv = is_bremerhaven(r.get("ort_raw") or "")
 
         if not districts:
@@ -88,7 +99,7 @@ def build_incidents(releases: list[dict]) -> pd.DataFrame:
             # incidents, or Ort text we failed to parse).
             rows.append({
                 "pm_id": r["pm_id"], "incident_date": incident_date,
-                "publish_date": r.get("publish_date"), "stadtteil": None,
+                "publish_date": r.get("publish_date"), "pub": pub, "stadtteil": None,
                 "is_bremerhaven": bhv, "category": category,
                 "title": r["title"], "ort_raw": r.get("ort_raw"),
                 "source_url": r["source_url"], "text": r.get("text", ""),
@@ -97,7 +108,7 @@ def build_incidents(releases: list[dict]) -> pd.DataFrame:
             for d in districts:
                 rows.append({
                     "pm_id": r["pm_id"], "incident_date": incident_date,
-                    "publish_date": r.get("publish_date"), "stadtteil": d,
+                    "publish_date": r.get("publish_date"), "pub": pub, "stadtteil": d,
                     "is_bremerhaven": bhv, "category": category,
                     "title": r["title"], "ort_raw": r.get("ort_raw"),
                     "source_url": r["source_url"], "text": r.get("text", ""),
@@ -137,7 +148,7 @@ def build_daily_panel(incidents: pd.DataFrame) -> pd.DataFrame:
 
 def main():
     releases = [json.loads(l) for l in
-                (PROCESSED_DIR / "releases.jsonl").read_text(encoding="utf-8").splitlines()]
+                (PROCESSED_DIR / "releases.jsonl").read_text(encoding="utf-8").split("\n") if l.strip()]
 
     incidents = build_incidents(releases)
     incidents.to_csv(PROCESSED_DIR / "incidents.csv", index=False, encoding="utf-8")

@@ -7,6 +7,8 @@ from pathlib import Path
 
 import pandas as pd
 
+import export_news
+
 ROOT = Path(__file__).resolve().parent.parent
 PROCESSED_DIR = ROOT / "data" / "processed"
 
@@ -72,6 +74,7 @@ def load_court_matches_by_pm_id() -> dict:
             "outcome_date": m["outcome_date"],
             "pdf_url": latest_release["pdf_url"],
             "pdf_title": latest_release["title"],
+            "court_id": latest_release["pm_id"],  # its full text: message_local.html?court=<id>
         }
         for pm_id in m["matched_pm_ids"]:
             by_pm_id[pm_id] = info
@@ -105,11 +108,14 @@ def main():
     series_by_pm_id = load_series_by_pm_id()
     ext_by_date = load_external_features_by_date()
     court_by_pm_id = load_court_matches_by_pm_id()
+    release_key = export_news.key_maker(export_news.read_jsonl(PROCESSED_DIR / "releases.jsonl"))
     records = []
     for i, row in df.iterrows():
         series_info = series_by_pm_id.get(row["pm_id"])
         record = {
-            "id": i,
+            "id": i,   # position in this file -- changes from day to day, only valid within one page load
+            "k": release_key(row["pm_id"], row["title"], row["publish_date"]),  # the release's lasting key
+            "pub": row["pub"] if isinstance(row.get("pub"), str) else None,   # day of the release (build_dataset)
             "lat": round(float(row["lat"]), 5),
             "lon": round(float(row["lon"]), 5),
             "prec": "a" if row["precision"] == "address" else "d",
@@ -120,7 +126,7 @@ def main():
                                          # merge e.g. Hasskriminalitaet and
                                          # Verkehrsunfall, both "Sonstiges")
             "date": row["incident_date"] if isinstance(row["incident_date"], str) else None,
-            "title": row["title"],
+            "title": row["title"] if isinstance(row["title"], str) else "",
             "stadtteil": row["stadtteil"],
             "ort": row["ort_raw"] if isinstance(row["ort_raw"], str) else "",
             "text": row["text"] if isinstance(row["text"], str) else "",
@@ -134,22 +140,18 @@ def main():
         if record["date"] and record["date"] in ext_by_date:
             record["x"] = ext_by_date[record["date"]]
         records.append(record)
-    out_path = ROOT / "assets" / "map_data.json"
-    out_path.write_text(json.dumps(records, ensure_ascii=False), encoding="utf-8")
-    print(f"Wrote {len(records)} records to {out_path} "
-          f"({out_path.stat().st_size / 1024:.0f} KB)")
 
-    forecast_path = PROCESSED_DIR / "forecast.json"
-    if forecast_path.exists():
-        out_forecast = ROOT / "assets" / "forecast.json"
-        out_forecast.write_text(forecast_path.read_text(encoding="utf-8"), encoding="utf-8")
-        print(f"Copied forecast to {out_forecast}")
-
-    stats_path = PROCESSED_DIR / "court_stats.json"
-    if stats_path.exists():
-        out_stats = ROOT / "assets" / "court_stats.json"
-        out_stats.write_text(stats_path.read_text(encoding="utf-8"), encoding="utf-8")
-        print(f"Copied court_stats to {out_stats}")
+    # Everything is built before anything is written, so the files the pages
+    # load together (map data + the "Meldungen" lists) always come from the
+    # same run: if a step above or the list export fails, all of them stay
+    # as they were.
+    files = {ROOT / "assets" / "map_data.json": records}
+    files.update(export_news.build())
+    for name in ("forecast.json", "court_stats.json"):
+        if (PROCESSED_DIR / name).exists():
+            files[ROOT / "assets" / name] = json.loads((PROCESSED_DIR / name).read_text(encoding="utf-8"))
+    export_news.write_all(files)
+    print(f"{len(records)} incidents on the map")
 
 
 if __name__ == "__main__":

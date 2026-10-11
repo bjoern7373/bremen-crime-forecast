@@ -25,6 +25,7 @@ import io
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from classify import classify
+from export_news import _read_log, court_stage, read_jsonl
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW_DIR = ROOT / "data" / "raw_courts"
@@ -73,16 +74,7 @@ def parse_pm_links(html: str) -> list[dict]:
 
 
 def stage_of(title: str) -> str:
-    t = title.lower()
-    if "rechtskraft" in t:
-        return "rechtskraft"
-    if "urteil" in t:
-        return "urteil"
-    if "auftakt" in t or "fortsetzung" in t:
-        return "auftakt"
-    if "anklage" in t:
-        return "anklage"
-    return "sonstiges"
+    return court_stage(title)  # one set of rules for the stored stage and the one shown in the lists
 
 
 _MONTHS = {
@@ -175,7 +167,10 @@ def scrape_amtsgericht_weekly() -> list[dict]:
 
     entries = []
     for m in _AG_ENTRY_RE.finditer(text):
-        narrative = re.sub(r"\s+", " ", m.group("narrative")).strip()
+        # the last hearing on the page is followed by the press office's
+        # imprint ("Verantwortlich ..."), which is not part of the accusation
+        narrative = re.split(r"\n\s*Verantwortlich\b", m.group("narrative"))[0]
+        narrative = re.sub(r"\s+", " ", narrative).strip()
         offense = m.group("offense").strip()
         entries.append({
             "weekday": m.group("weekday"),
@@ -196,13 +191,17 @@ def update_amtsgericht_log(entries: list[dict]) -> int:
     the current week and overwrites it."""
     log_path = PROCESSED_DIR / "amtsgericht_log.jsonl"
     existing_az: set[str] = set()
+    ends_mid_line = False
     if log_path.exists():
-        with log_path.open(encoding="utf-8") as f:
-            for line in f:
-                existing_az.add(json.loads(line)["az"])
+        # tolerant of a line cut off by a crash: one bad line must not stop the collecting for good
+        existing_az = {entry["az"] for entry in _read_log(log_path) if "az" in entry}
+        logged = log_path.read_text(encoding="utf-8")
+        ends_mid_line = bool(logged) and not logged.endswith("\n")
 
     new_count = 0
     with log_path.open("a", encoding="utf-8") as f:
+        if ends_mid_line:
+            f.write("\n")  # otherwise the next record would be glued to the cut-off one
         for e in entries:
             if e["az"] in existing_az:
                 continue
@@ -215,13 +214,21 @@ def update_amtsgericht_log(entries: list[dict]) -> int:
 
 def main():
     print("Scraping Landgericht Bremen press releases (current + archive)...")
-    releases = scrape_landgericht()
+    scraped = scrape_landgericht()
     out_path = PROCESSED_DIR / "court_releases.jsonl"
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
-    with out_path.open("w", encoding="utf-8") as f:
-        for r in releases:
-            f.write(json.dumps(r, ensure_ascii=False) + "\n")
-    print(f"Wrote {len(releases)} Landgericht releases to {out_path}")
+    # What we once collected stays: a release the court no longer lists (it
+    # prunes its archive page; a maintenance page lists nothing at all) is
+    # kept from the previous run, a release listed again is refreshed.
+    releases = {r["pm_id"]: r for r in (read_jsonl(out_path) if out_path.exists() else [])}
+    n_before = len(releases)
+    releases.update((r["pm_id"], r) for r in scraped)
+    ordered = sorted(releases.values(), key=lambda r: (r["pm_year"], r["pm_number"]), reverse=True)
+    tmp_path = out_path.with_name(out_path.name + ".tmp")
+    tmp_path.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in ordered), encoding="utf-8")
+    tmp_path.replace(out_path)
+    print(f"Wrote {len(ordered)} Landgericht releases to {out_path} "
+          f"({len(scraped)} listed by the court today, {len(ordered) - n_before} new)")
 
     print("\nPolling Amtsgericht Bremen weekly hearing bulletin...")
     try:

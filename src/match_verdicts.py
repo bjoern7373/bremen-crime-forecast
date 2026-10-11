@@ -22,7 +22,7 @@ from pathlib import Path
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from districts import KNOWN_STADTTEILE, _ORTSTEIL_ALIASES
+from districts import KNOWN_STADTTEILE, LANDMARKS
 
 ROOT = Path(__file__).resolve().parent.parent
 PROCESSED_DIR = ROOT / "data" / "processed"
@@ -131,7 +131,7 @@ def extract_district(text: str) -> str | None:
     for name in KNOWN_STADTTEILE:
         if re.search(r"\b" + re.escape(name) + r"\b", text):
             return name
-    for alias, canonical in _ORTSTEIL_ALIASES.items():
+    for alias, canonical in LANDMARKS.items():
         if alias.lower() in text.lower():
             return canonical
     return None
