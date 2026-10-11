@@ -30,35 +30,6 @@
     ]
   },
   {
-    "category": "Sonstiges",
-    "pm_ids": [
-      18626.0,
-      11126.0,
-      15126.0,
-      16126.0,
-      16226.0,
-      16526.0
-    ],
-    "n": 6,
-    "date_start": "2026-02-14",
-    "date_end": "2026-03-06",
-    "span_days": 20,
-    "max_spread_m": 2030,
-    "centroid_lat": 53.07516,
-    "centroid_lon": 8.81387,
-    "titles": [
-      "Einsatz im Viertel – 2500 Menschen auf der Sielwallkreuzung",
-      "Noch freie Plätze: Vortrag „Sexualisierte Gewalt im Netz – Kinder sicher begleiten“",
-      "Polizei stoppt betrunkenen Autofahrer",
-      "Bombendrohung löst Polizeieinsatz aus",
-      "Vermummte Gruppe zündet Pyrotechnik und verletzt Polizisten",
-      "Indiana Jones und der verlorene Poller"
-    ],
-    "stadtteile": [
-      "Mitte"
-    ]
-  },
-  {
     "category": "Einbruch",
     "pm_ids": [
       55626.0,
@@ -155,6 +126,29 @@
     "stadtteile": [
       "Mitte",
       "Östliche Vorstadt"
+    ]
+  },
+  {
+    "category": "Sonstiges",
+    "pm_ids": [
+      15126.0,
+      16126.0,
+      16526.0
+    ],
+    "n": 3,
+    "date_start": "2026-02-28",
+    "date_end": "2026-03-06",
+    "span_days": 6,
+    "max_spread_m": 870,
+    "centroid_lat": 53.07928,
+    "centroid_lon": 8.80743,
+    "titles": [
+      "Polizei stoppt betrunkenen Autofahrer",
+      "Bombendrohung löst Polizeieinsatz aus",
+      "Indiana Jones und der verlorene Poller"
+    ],
+    "stadtteile": [
+      "Mitte"
     ]
   }
 ]
