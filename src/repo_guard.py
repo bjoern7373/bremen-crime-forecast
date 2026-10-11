@@ -102,7 +102,7 @@ def check() -> dict:
     }
 
 
-PUBLISHED_PATHS = ("data", "docs/*.json")   # what the daily update commits
+PUBLISHED_PATHS = ("data", "docs/*.json", "assets/*.json")   # what the daily update commits
 
 
 def left_behind(held_back: list[str] | None = None) -> str | None:

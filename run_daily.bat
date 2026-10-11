@@ -49,7 +49,8 @@ if "%EXPORT_STATUS%"=="0" (
     echo FEHLER: export_map_data.py ist abgebrochen ^(Code %EXPORT_STATUS%^) - oeffentliche Karte behaelt den bisherigen Stand >> logs\daily.log
 )
 rem "data" as a whole: raw pages, the permanent archive, caches -- everything worth keeping a second copy of
-git add data docs\*.json >> logs\daily.log 2>&1
+rem assets\*.json: the local map's copies of the same files, so the working folder stays in step with the history
+git add data docs\*.json assets\*.json >> logs\daily.log 2>&1
 rem keeps anything too large for GitHub out of the commit (see src\repo_guard.py)
 %PY% src\repo_guard.py --check >> logs\daily.log 2>&1
 git commit -m "Daily data update" >> logs\daily.log 2>&1
