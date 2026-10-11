@@ -1085,7 +1085,9 @@
     var m = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}:\d{2}))?/.exec(s || "");
     return m ? m[3] + "." + m[2] + "." + m[1] + (m[4] ? ", " + m[4] + " Uhr" : "") : String(s || "");
   }
-  fetch("repo_status.json").then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (rs) {
+  // (not even asked for on the published site: the file is never there)
+  (location.protocol === "https:" ? Promise.reject() : fetch("repo_status.json"))
+    .then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (rs) {
     var problems = (rs.warnings || []).slice();
     if (rs.last_push_ok === false) {
       problems.push("Die öffentliche Karte konnte seit " + germanDateTime(rs.push_failing_since) + " nicht aktualisiert werden" +
