@@ -190,7 +190,7 @@
   /* on a wide map the text gets its own part of the panel instead of covering the map */
   .map-panel.split #map { right: min(560px, 100%); }
 
-  /* what a red forecast circle stands for -- shown while the mouse is over it */
+  /* District forecast -- shown on hover, pinned by clicking a halo. */
   .forecast-box {
     display: none; position: absolute; left: 10px; bottom: 26px; z-index: 1000; pointer-events: none;
     width: min(330px, calc(100% - 20px)); max-height: calc(100% - 36px); overflow: hidden;
@@ -312,7 +312,7 @@
 
       <h2 style="margin-top:8px">Prognose</h2>
       <label style="font-size:12px; display:flex; align-items:center; gap:6px; cursor:pointer;">
-        <input type="checkbox" id="forecastToggle" checked> Risiko-Gebiete anzeigen (rot)
+        <input type="checkbox" id="forecastToggle" checked> Stadtteil-Prognosen anzeigen
       </label>
       <div id="forecastInfo" style="font-size:11px; color:var(--text-muted); line-height:1.5; margin-top:4px;"></div>
 
@@ -703,12 +703,10 @@
     attribution: "&copy; OpenStreetMap contributors"
   }).addTo(map);
 
-  // Sits BELOW the default overlayPane (where incident dots + Stadtteil-halos
-  // live) so the Prognose layer never steals hover from them -- the mouse
-  // "sees" whatever is topmost at that pixel: a dot first, then a category
-  // halo, and only the plain red wash where neither exists.
+  // Large circles always represent district forecasts. Keep them above
+  // other overlays, but below the individual incident dots (markerPane 600).
   map.createPane("forecastPane");
-  map.getPane("forecastPane").style.zIndex = 350;
+  map.getPane("forecastPane").style.zIndex = 450;
 
   var markers = [];
   var activeCats = {};
@@ -722,42 +720,72 @@
 
   var forecastLayers = [];
 
-  // Forecast overlay: same exp_decay + dow_seasonal hotspot models already
-  // validated in src/backtest.py (PAI ~1.3-1.4, i.e. ~30-40% better than
-  // random guessing), run once more on today's data to flag which Stadtteile
-  // are currently elevated-risk. A statistical tendency, not a prediction of
-  // individual events. Built AFTER incidents load (needs DATA for the
-  // hover breakdown) -- loaded tolerantly so an older package without
+  // One forecast halo per district: red for the model's top-k districts,
+  // neutral for the rest. Individual incidents use small dots only.
+  // Built AFTER incidents load (needs DATA for the breakdown), and loaded
+  // tolerantly so an older package without
   // forecast.json just silently shows no overlay instead of breaking.
   function buildForecastLayer(DATA, fc) {
     var info = document.getElementById("forecastInfo");
     info.innerHTML =
       "Prognose für " + escapeHtml(germanDate(fc.generated_for_date)) + " (" + fc.horizon_days + " Tage), Top " + fc.k +
-      " von 23 Stadtteilen. Mit der Maus über einen roten Kreis fahren zeigt, was dort zu erwarten ist." +
+      " von " + fc.districts.length + " Stadtteilen rot hervorgehoben; die übrigen sind neutral markiert. " +
+      "Große Halos zeigen die Stadtteil-Prognose, kleine Punkte einzelne Meldungen. " +
+      "Mit der Maus über einen Halo fahren oder zum Festhalten anklicken; ein Klick auf die freie Karte schließt die Prognose." +
       "<details><summary>Wie verlässlich ist das?</summary><p>" + escapeHtml(fc.model_note) + "</p>" +
       timingInfoHtml(fc.timing) + "</details>";
 
     var elevated = fc.districts.filter(function (d) { return d.elevated; });
     var maxScore = elevated.reduce(function (m, d) { return Math.max(m, d.score); }, 0.0001);
     var now = new Date();
-    // The details of a forecast circle appear in a fixed box in the corner of
-    // the map, not next to the cursor: they are too long for a tooltip, which
-    // the edge of the map would cut off. The box lets the mouse through, so
-    // the points and halos underneath stay reachable.
+    // Keep long forecasts inside the map. Clicking pins the current
+    // forecast, including on touch devices; incident dots remain reachable.
     var box = document.getElementById("forecastBox");
-    function hideBox() { box.style.display = "none"; }
+    var pinnedHtml = null;
+    function showBox(html) { box.innerHTML = html; box.style.display = "block"; }
+    function restoreBox() {
+      if (pinnedHtml) showBox(pinnedHtml);
+      else box.style.display = "none";
+    }
+    function hideBox() { pinnedHtml = null; box.style.display = "none"; }
+    map.on("click", hideBox);
 
-    elevated.forEach(function (d) {
+    // Draw red highlights last so neutral district circles cannot cover them.
+    fc.districts.slice().sort(function (a, b) {
+      return Number(a.elevated) - Number(b.elevated);
+    }).forEach(function (d) {
       var intensity = d.score / maxScore;  // 0..1 within the elevated set, rank 1 = most vivid
+      var color = d.elevated ? "#dc2626" : "#64748b";
       var circle = L.circle([d.lat, d.lon], {
-        radius: 500 + 900 * intensity,
-        color: "#dc2626", weight: 2, opacity: 0.15 + 0.35 * intensity,
-        fillColor: "#dc2626", fillOpacity: 0.05 + 0.12 * intensity,
-        interactive: true, pane: "forecastPane"
+        radius: d.elevated ? 500 + 900 * intensity : 900,
+        color: color, weight: d.elevated ? 2 : 1, opacity: d.elevated ? 0.15 + 0.35 * intensity : 0.4,
+        fillColor: color, fillOpacity: d.elevated ? 0.05 + 0.12 * intensity : 0.045,
+        interactive: true, pane: "forecastPane", className: "forecast-halo"
       });
       var html = forecastDetailsHtml(DATA, d, now, fc.timing);
-      circle.on("mouseover", function () { box.innerHTML = html; box.style.display = "block"; });
-      circle.on("mouseout", hideBox);
+      circle.on("mouseover", function () { showBox(html); });
+      circle.on("mouseout", restoreBox);
+      circle.on("click", function (ev) {
+        L.DomEvent.stopPropagation(ev);
+        pinnedHtml = html;
+        showBox(html);
+      });
+      circle.on("add", function () {
+        var el = circle.getElement();
+        el.setAttribute("aria-label", "Prognose: " + d.stadtteil);
+        el.setAttribute("role", "button");
+        el.setAttribute("tabindex", "0");
+        el.onkeydown = function (ev) {
+          if (ev.key === "Enter" || ev.key === " ") {
+            L.DomEvent.stop(ev);
+            pinnedHtml = html;
+            showBox(html);
+          } else if (ev.key === "Escape") {
+            L.DomEvent.stop(ev);
+            hideBox();
+          }
+        };
+      });
       forecastLayers.push(circle);
     });
 
@@ -900,7 +928,9 @@
         escapeHtml(RAW_LABELS[topCat] || topCat) + "</b> (" + pct + " % aller Meldungen)";
     }
 
-    return "<b>Prognose: " + escapeHtml(d.stadtteil) + "</b><br>Rang " + d.rank + " von 23 &middot; erh&ouml;htes Risiko" + nextLikely +
+    var riskLabel = d.elevated ? "erh&ouml;htes Risiko (rot hervorgehoben)"
+      : "nicht unter den aktuell rot hervorgehobenen Stadtteilen";
+    return "<b>Prognose: " + escapeHtml(d.stadtteil) + "</b><br>Rang " + d.rank + " von 23 &middot; " + riskLabel + nextLikely +
       timingHtml +
       "<div style=\"margin-top:4px;\">Letzte 7 Tage: <b>" + counts[7] + "</b> " + (counts[7] === 1 ? "Tat" : "Taten") + " &middot; " +
       "30 Tage: <b>" + counts[30] + "</b> &middot; 90 Tage: <b>" + counts[90] + "</b></div>" +
@@ -1253,19 +1283,8 @@
   }
 
   function buildMarkers(DATA) {
-    // Halo circles for same-district incidents sit at the exact same centroid
-    // and stack on top of each other -- many faint overlapping fills add up
-    // to a solid block (very visible once zoomed into a dense Stadtteil).
-    // Count how many incidents share a (location, category) so each one's
-    // opacity can be scaled down to compensate, keeping the STACKED result
-    // equal to the intended target opacity no matter how many overlap.
-    var haloGroupCount = {};
-    DATA.forEach(function (d) {
-      if (d.prec !== "d") return;
-      var key = d.lat + "," + d.lon + "|" + d.cat;
-      haloGroupCount[key] = (haloGroupCount[key] || 0) + 1;
-    });
-    var HALO_FILL_TARGET = 0.05, HALO_BORDER_TARGET = 0.18;
+    // Incidents use small dots only. A district-only location keeps its
+    // deterministic jitter and precision note; large halos belong to forecasts.
 
     DATA.forEach(function (d, idx) {
       var cat = CATS[d.cat] || CATS["Sonstiges"];
@@ -1301,18 +1320,6 @@
       if (d.prec === "d") {
         var j = hashJitter(d.title + d.date + idx, 0.006);
         lat += j[0]; lon += j[1];
-        var n = haloGroupCount[d.lat + "," + d.lon + "|" + d.cat] || 1;
-        // solve a_single such that 1-(1-a_single)^n == target, so n stacked
-        // layers still compose to the intended target opacity, not n times it
-        var fillOp = 1 - Math.pow(1 - HALO_FILL_TARGET, 1 / n);
-        var borderOp = 1 - Math.pow(1 - HALO_BORDER_TARGET, 1 / n);
-        var halo = L.circle([d.lat, d.lon], {
-          radius: 450, color: cat.color, weight: 1, opacity: borderOp,
-          fillColor: cat.color, fillOpacity: fillOp
-        }).addTo(map);
-        halo.bindTooltip(tipHtml, { className: "bt-tooltip", sticky: true });
-        halo.on("click", function (ev) { selectThis(marker, ev); });
-        markers.push({ layer: halo, data: d, isHalo: true, visible: true });
       }
 
       var icon = L.divIcon({

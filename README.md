@@ -129,21 +129,27 @@ it knows *when*. An earlier version of this file and of the map claimed
 instead of by the real random hit rate and tested unobserved days as
 misses, and is withdrawn.
 
-## Forecast overlay (red halo)
+## Forecast overlay (district halos)
 
 `src/forecast.py` runs the `ensemble` model from `backtest.py` (same
 defaults: k=5, horizon=7, half_life=7) once more, on all available history,
 to score *today* instead of a past day; the top 5 of the 23 Stadtteile are
 flagged `elevated: true`. Written to `data/processed/forecast.json` ->
-copied to `assets/forecast.json`. The map renders these as a toggleable red
-halo layer (sidebar: "Prognose"). The sidebar note is generated from the
+copied to `assets/forecast.json`. The local and public interactive maps render
+one forecast halo per Stadtteil (sidebar: "Prognose"): the top 5 are red,
+the others neutral. Every large halo shows its district's forecast and timing,
+including districts outside the top 5; those are explicitly described as not
+being among the highlighted districts, not as having no risk. Hover shows the
+forecast, clicking pins it until a click on the free map or the layer is hidden.
+Individual incidents use only the small category dots, including jittered dots
+for approximate district-only locations. The sidebar note is generated from the
 backtest of that same day (hit rate, random, "always the busiest"), so it
 cannot go stale or claim more than was measured.
 
 **Time statements** (`src/timing.py`): per Stadtteil, for any report and
 for its most frequently reported offense types, by when the next police
 report is to be expected -- two "by when" marks, shown in a box in the
-corner of the map while the mouse is over a red halo ("in rund 50 % der
+corner of the map while the mouse is over a forecast halo ("in rund 50 % der
 Fälle binnen 8 Tagen, in rund 75 % binnen 18 Tagen"). The rate is estimated
 from observed days only (holes in the history count neither as time nor as
 events), thin data is pulled towards the city-wide rate of that offense type
@@ -338,7 +344,7 @@ of the map (separate from the published Artifact above, which can't do any
 of this due to the Artifact sandbox's CSP):
 
 ```
-assets/map_local.html       the map window -- clicking a point/halo broadcasts
+assets/map_local.html       the map window -- clicking a small point broadcasts
                              the incident (via BroadcastChannel) to...
 assets/details_local.html   ...the side window ("Detail-Fenster"), which lists clicked
                              incidents and shows one full text at a time, loading...
@@ -352,6 +358,12 @@ src/update_gate.py          is an update due? Once every 24h (data/.last_update.
                              failed one is retried, but not within 2h of the last
                              attempt (data/.last_attempt.txt)
 ```
+
+Large halos on the local and public interactive map always show a district
+forecast, never a single incident. Small category dots keep their incident
+tooltips and detail-window behavior; district-only locations are approximate.
+Forecast halos sit below those dots, so both remain accessible. A halo also
+opens its forecast with Enter/Space when focused; Escape closes that box.
 
 Double-clicking the shortcut: runs `update_gate.py`; if an update is due,
 runs the full `run_daily.bat` pipeline first (a minute or two); then makes
