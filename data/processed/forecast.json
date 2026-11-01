@@ -1,16 +1,16 @@
 {
-  "generated_for_date": "2026-10-31",
+  "generated_for_date": "2026-11-01",
   "horizon_days": 7,
   "k": 5,
-  "model_note": "Markiert sind die 5 Stadtteile mit dem höchsten Wert aus jüngster Häufung und Wochentags-Muster. Rückblick-Test über 288 Tage: In 66 % der Fälle gab es im markierten Stadtteil binnen 7 Tagen tatsächlich eine Meldung (bei zufälliger Auswahl: 35 %). Wer einfach immer die 5 Stadtteile mit den meisten Meldungen markiert, kommt allerdings auf 69 %: Die Prognose zeigt bisher vor allem, WO dauerhaft viel gemeldet wird – ein zeitliches Muster darüber hinaus ist noch nicht nachweisbar. Statistische Tendenz, keine Vorhersage einzelner Taten.",
+  "model_note": "Markiert sind die 5 Stadtteile mit dem höchsten Wert aus jüngster Häufung und Wochentags-Muster. Rückblick-Test über 289 Tage: In 66 % der Fälle gab es im markierten Stadtteil binnen 7 Tagen tatsächlich eine Meldung (bei zufälliger Auswahl: 35 %). Wer einfach immer die 5 Stadtteile mit den meisten Meldungen markiert, kommt allerdings auf 69 %: Die Prognose zeigt bisher vor allem, WO dauerhaft viel gemeldet wird – ein zeitliches Muster darüber hinaus ist noch nicht nachweisbar. Statistische Tendenz, keine Vorhersage einzelner Taten.",
   "hotspot_check": {
-    "n_test_days": 288,
-    "hit_rate": 0.656,
+    "n_test_days": 289,
+    "hit_rate": 0.655,
     "random": 0.346,
     "always_busiest": 0.687
   },
   "timing": {
-    "as_of": "2026-10-31",
+    "as_of": "2026-11-01",
     "levels": [
       50,
       80
@@ -19,34 +19,34 @@
     "check": {
       "offense": {
         "50": {
-          "n": 2486,
+          "n": 2499,
           "said": 0.507,
-          "came_true": 0.412
+          "came_true": 0.411
         },
         "80": {
-          "n": 1831,
+          "n": 1842,
           "said": 0.803,
-          "came_true": 0.681
+          "came_true": 0.68
         }
       },
       "any": {
         "50": {
-          "n": 1132,
+          "n": 1137,
           "said": 0.538,
           "came_true": 0.493
         },
         "80": {
-          "n": 1100,
+          "n": 1106,
           "said": 0.818,
-          "came_true": 0.76
+          "came_true": 0.759
         }
       }
     },
     "coverage": {
       "first_day": "2025-01-14",
-      "last_day": "2026-10-30",
-      "observed_days": 351,
-      "calendar_days": 655,
+      "last_day": "2026-10-31",
+      "observed_days": 352,
+      "calendar_days": 656,
       "holes": 7
     }
   },
@@ -60,7 +60,7 @@
       "elevated": true,
       "timing": {
         "any": {
-          "rate_per_30d": 12.03,
+          "rate_per_30d": 11.94,
           "p14": 1.0,
           "p30": 1.0,
           "t50": 2,
@@ -70,16 +70,16 @@
         "offenses": [
           {
             "category": "Raub",
-            "rate_per_30d": 1.7,
-            "p14": 0.54,
-            "p30": 0.8,
+            "rate_per_30d": 1.69,
+            "p14": 0.53,
+            "p30": 0.79,
             "t50": 13,
             "t80": 31,
             "n_reports": 28
           },
           {
             "category": "Drogendelikt",
-            "rate_per_30d": 1.66,
+            "rate_per_30d": 1.65,
             "p14": 0.53,
             "p30": 0.79,
             "t50": 13,
@@ -91,9 +91,56 @@
             "rate_per_30d": 1.14,
             "p14": 0.4,
             "p30": 0.66,
-            "t50": 19,
+            "t50": 20,
             "t80": 47,
             "n_reports": 14
+          }
+        ]
+      }
+    },
+    {
+      "stadtteil": "Gröpelingen",
+      "lat": 53.11671,
+      "lon": 8.76305,
+      "score": 0.464,
+      "rank": 2,
+      "elevated": true,
+      "timing": {
+        "any": {
+          "rate_per_30d": 2.85,
+          "p14": 0.72,
+          "p30": 0.92,
+          "t50": 8,
+          "t80": 19,
+          "n_reports": 42
+        },
+        "offenses": [
+          {
+            "category": "Raub",
+            "rate_per_30d": 0.62,
+            "p14": 0.25,
+            "p30": 0.44,
+            "t50": 37,
+            "t80": 94,
+            "n_reports": 10
+          },
+          {
+            "category": "Einbruch",
+            "rate_per_30d": 0.27,
+            "p14": 0.12,
+            "p30": 0.23,
+            "t50": 91,
+            "t80": null,
+            "n_reports": 6
+          },
+          {
+            "category": "Diebstahl",
+            "rate_per_30d": 0.28,
+            "p14": 0.12,
+            "p30": 0.23,
+            "t50": 90,
+            "t80": null,
+            "n_reports": 5
           }
         ]
       }
@@ -102,12 +149,12 @@
       "stadtteil": "Walle",
       "lat": 53.10287,
       "lon": 8.78305,
-      "score": 0.34,
-      "rank": 2,
+      "score": 0.419,
+      "rank": 3,
       "elevated": true,
       "timing": {
         "any": {
-          "rate_per_30d": 5.12,
+          "rate_per_30d": 5.08,
           "p14": 0.9,
           "p30": 0.99,
           "t50": 5,
@@ -117,11 +164,11 @@
         "offenses": [
           {
             "category": "Drogendelikt",
-            "rate_per_30d": 0.52,
+            "rate_per_30d": 0.51,
             "p14": 0.21,
             "p30": 0.38,
             "t50": 45,
-            "t80": 117,
+            "t80": 118,
             "n_reports": 10
           },
           {
@@ -129,64 +176,17 @@
             "rate_per_30d": 0.58,
             "p14": 0.23,
             "p30": 0.42,
-            "t50": 39,
-            "t80": 102,
+            "t50": 40,
+            "t80": 103,
             "n_reports": 6
           },
           {
             "category": "Diebstahl",
             "rate_per_30d": 0.65,
-            "p14": 0.26,
-            "p30": 0.46,
-            "t50": 35,
-            "t80": 89,
-            "n_reports": 5
-          }
-        ]
-      }
-    },
-    {
-      "stadtteil": "Gröpelingen",
-      "lat": 53.11671,
-      "lon": 8.76305,
-      "score": 0.336,
-      "rank": 3,
-      "elevated": true,
-      "timing": {
-        "any": {
-          "rate_per_30d": 2.87,
-          "p14": 0.72,
-          "p30": 0.93,
-          "t50": 8,
-          "t80": 18,
-          "n_reports": 42
-        },
-        "offenses": [
-          {
-            "category": "Raub",
-            "rate_per_30d": 0.63,
             "p14": 0.25,
-            "p30": 0.44,
-            "t50": 36,
-            "t80": 93,
-            "n_reports": 10
-          },
-          {
-            "category": "Einbruch",
-            "rate_per_30d": 0.28,
-            "p14": 0.12,
-            "p30": 0.23,
-            "t50": 90,
-            "t80": null,
-            "n_reports": 6
-          },
-          {
-            "category": "Diebstahl",
-            "rate_per_30d": 0.28,
-            "p14": 0.12,
-            "p30": 0.23,
-            "t50": 89,
-            "t80": null,
+            "p30": 0.45,
+            "t50": 35,
+            "t80": 90,
             "n_reports": 5
           }
         ]
@@ -196,23 +196,23 @@
       "stadtteil": "Neustadt",
       "lat": 53.06954,
       "lon": 8.79284,
-      "score": 0.312,
+      "score": 0.322,
       "rank": 4,
       "elevated": true,
       "timing": {
         "any": {
-          "rate_per_30d": 7.09,
+          "rate_per_30d": 7.04,
           "p14": 0.96,
           "p30": 1.0,
           "t50": 3,
-          "t80": 7,
+          "t80": 8,
           "n_reports": 89
         },
         "offenses": [
           {
             "category": "Raub",
-            "rate_per_30d": 0.98,
-            "p14": 0.36,
+            "rate_per_30d": 0.97,
+            "p14": 0.35,
             "p30": 0.6,
             "t50": 23,
             "t80": 56,
@@ -220,115 +220,21 @@
           },
           {
             "category": "Sachbeschaedigung",
-            "rate_per_30d": 0.74,
+            "rate_per_30d": 0.73,
             "p14": 0.28,
             "p30": 0.5,
             "t50": 31,
-            "t80": 77,
+            "t80": 78,
             "n_reports": 11
           },
           {
             "category": "Toetungsdelikt",
-            "rate_per_30d": 0.55,
+            "rate_per_30d": 0.54,
             "p14": 0.22,
             "p30": 0.4,
             "t50": 42,
-            "t80": 109,
+            "t80": 110,
             "n_reports": 9
-          }
-        ]
-      }
-    },
-    {
-      "stadtteil": "Schwachhausen",
-      "lat": 53.08543,
-      "lon": 8.83631,
-      "score": 0.282,
-      "rank": 5,
-      "elevated": true,
-      "timing": {
-        "any": {
-          "rate_per_30d": 2.81,
-          "p14": 0.71,
-          "p30": 0.92,
-          "t50": 8,
-          "t80": 19,
-          "n_reports": 30
-        },
-        "offenses": [
-          {
-            "category": "Koerperverletzung",
-            "rate_per_30d": 0.41,
-            "p14": 0.17,
-            "p30": 0.32,
-            "t50": 58,
-            "t80": 157,
-            "n_reports": 5
-          },
-          {
-            "category": "Drogendelikt",
-            "rate_per_30d": 0.35,
-            "p14": 0.15,
-            "p30": 0.28,
-            "t50": 69,
-            "t80": null,
-            "n_reports": 3
-          },
-          {
-            "category": "Waffendelikt",
-            "rate_per_30d": 0.3,
-            "p14": 0.13,
-            "p30": 0.24,
-            "t50": 84,
-            "t80": null,
-            "n_reports": 3
-          }
-        ]
-      }
-    },
-    {
-      "stadtteil": "Osterholz",
-      "lat": 53.05551,
-      "lon": 8.95071,
-      "score": 0.269,
-      "rank": 6,
-      "elevated": false,
-      "timing": {
-        "any": {
-          "rate_per_30d": 2.12,
-          "p14": 0.61,
-          "p30": 0.85,
-          "t50": 11,
-          "t80": 25,
-          "n_reports": 25
-        },
-        "offenses": [
-          {
-            "category": "Drogendelikt",
-            "rate_per_30d": 0.28,
-            "p14": 0.12,
-            "p30": 0.23,
-            "t50": 87,
-            "t80": null,
-            "n_reports": 3
-          },
-          {
-            "category": "Raub",
-            "rate_per_30d": 0.28,
-            "p14": 0.12,
-            "p30": 0.23,
-            "t50": 89,
-            "t80": null,
-            "n_reports": 3
-          },
-          {
-            "category": "Verkehrsunfall",
-            "rate_per_30d": 0.24,
-            "p14": 0.1,
-            "p30": 0.2,
-            "t50": 107,
-            "t80": null,
-            "n_reports": 3
           }
         ]
       }
@@ -337,12 +243,12 @@
       "stadtteil": "Findorff",
       "lat": 53.09468,
       "lon": 8.80828,
-      "score": 0.233,
-      "rank": 7,
-      "elevated": false,
+      "score": 0.307,
+      "rank": 5,
+      "elevated": true,
       "timing": {
         "any": {
-          "rate_per_30d": 2.24,
+          "rate_per_30d": 2.22,
           "p14": 0.63,
           "p30": 0.87,
           "t50": 10,
@@ -352,7 +258,7 @@
         "offenses": [
           {
             "category": "Raub",
-            "rate_per_30d": 0.74,
+            "rate_per_30d": 0.73,
             "p14": 0.28,
             "p30": 0.5,
             "t50": 31,
@@ -361,11 +267,11 @@
           },
           {
             "category": "Diebstahl",
-            "rate_per_30d": 0.39,
+            "rate_per_30d": 0.38,
             "p14": 0.16,
             "p30": 0.3,
             "t50": 62,
-            "t80": 169,
+            "t80": 171,
             "n_reports": 4
           },
           {
@@ -384,13 +290,13 @@
       "stadtteil": "Östliche Vorstadt",
       "lat": 53.07023,
       "lon": 8.84098,
-      "score": 0.209,
-      "rank": 8,
+      "score": 0.257,
+      "rank": 6,
       "elevated": false,
       "timing": {
         "any": {
-          "rate_per_30d": 3.94,
-          "p14": 0.83,
+          "rate_per_30d": 3.91,
+          "p14": 0.82,
           "p30": 0.97,
           "t50": 6,
           "t80": 13,
@@ -399,216 +305,122 @@
         "offenses": [
           {
             "category": "Drogendelikt",
-            "rate_per_30d": 0.66,
+            "rate_per_30d": 0.65,
             "p14": 0.26,
             "p30": 0.46,
             "t50": 35,
-            "t80": 88,
+            "t80": 89,
             "n_reports": 15
           },
           {
             "category": "Einbruch",
-            "rate_per_30d": 0.54,
-            "p14": 0.22,
-            "p30": 0.4,
+            "rate_per_30d": 0.53,
+            "p14": 0.21,
+            "p30": 0.39,
             "t50": 43,
-            "t80": 112,
+            "t80": 113,
             "n_reports": 6
           },
           {
             "category": "Koerperverletzung",
-            "rate_per_30d": 0.48,
-            "p14": 0.2,
-            "p30": 0.36,
-            "t50": 48,
-            "t80": 127,
-            "n_reports": 5
-          }
-        ]
-      }
-    },
-    {
-      "stadtteil": "Obervieland",
-      "lat": 53.03885,
-      "lon": 8.83796,
-      "score": 0.17,
-      "rank": 9,
-      "elevated": false,
-      "timing": {
-        "any": {
-          "rate_per_30d": 2.12,
-          "p14": 0.61,
-          "p30": 0.85,
-          "t50": 11,
-          "t80": 25,
-          "n_reports": 24
-        },
-        "offenses": [
-          {
-            "category": "Sachbeschaedigung",
-            "rate_per_30d": 0.18,
-            "p14": 0.08,
-            "p30": 0.16,
-            "t50": 149,
-            "t80": null,
-            "n_reports": 3
-          },
-          {
-            "category": "Verkehrsunfall",
-            "rate_per_30d": 0.22,
-            "p14": 0.1,
-            "p30": 0.19,
-            "t50": null,
-            "t80": null,
-            "n_reports": 2
-          },
-          {
-            "category": "Drogendelikt",
-            "rate_per_30d": 0.14,
-            "p14": 0.06,
-            "p30": 0.12,
-            "t50": null,
-            "t80": null,
-            "n_reports": 2
-          }
-        ]
-      }
-    },
-    {
-      "stadtteil": "Burglesum",
-      "lat": 53.16109,
-      "lon": 8.69172,
-      "score": 0.153,
-      "rank": 10,
-      "elevated": false,
-      "timing": {
-        "any": {
-          "rate_per_30d": 1.93,
-          "p14": 0.58,
-          "p30": 0.83,
-          "t50": 12,
-          "t80": 28,
-          "n_reports": 19
-        },
-        "offenses": [
-          {
-            "category": "Raub",
             "rate_per_30d": 0.48,
             "p14": 0.19,
             "p30": 0.36,
             "t50": 49,
             "t80": 129,
             "n_reports": 5
-          },
-          {
-            "category": "Einbruch",
-            "rate_per_30d": 0.31,
-            "p14": 0.13,
-            "p30": 0.25,
-            "t50": null,
-            "t80": null,
-            "n_reports": 2
-          },
-          {
-            "category": "Koerperverletzung",
-            "rate_per_30d": 0.09,
-            "p14": 0.04,
-            "p30": 0.08,
-            "t50": null,
-            "t80": null,
-            "n_reports": 2
           }
         ]
       }
     },
     {
-      "stadtteil": "Vahr",
-      "lat": 53.07865,
-      "lon": 8.87757,
-      "score": 0.14,
-      "rank": 11,
+      "stadtteil": "Osterholz",
+      "lat": 53.05551,
+      "lon": 8.95071,
+      "score": 0.251,
+      "rank": 7,
       "elevated": false,
       "timing": {
         "any": {
-          "rate_per_30d": 1.27,
-          "p14": 0.43,
-          "p30": 0.68,
-          "t50": 18,
-          "t80": 45,
-          "n_reports": 19
+          "rate_per_30d": 2.1,
+          "p14": 0.61,
+          "p30": 0.85,
+          "t50": 11,
+          "t80": 26,
+          "n_reports": 25
         },
         "offenses": [
           {
-            "category": "Verkehrsunfall",
-            "rate_per_30d": 0.21,
-            "p14": 0.09,
-            "p30": 0.18,
-            "t50": 124,
-            "t80": null,
-            "n_reports": 5
-          },
-          {
-            "category": "Raub",
-            "rate_per_30d": 0.2,
-            "p14": 0.09,
-            "p30": 0.17,
-            "t50": 135,
+            "category": "Drogendelikt",
+            "rate_per_30d": 0.28,
+            "p14": 0.12,
+            "p30": 0.23,
+            "t50": 88,
             "t80": null,
             "n_reports": 3
           },
           {
-            "category": "Brandstiftung",
-            "rate_per_30d": 0.09,
-            "p14": 0.04,
-            "p30": 0.08,
-            "t50": null,
+            "category": "Raub",
+            "rate_per_30d": 0.28,
+            "p14": 0.12,
+            "p30": 0.23,
+            "t50": 90,
             "t80": null,
-            "n_reports": 2
+            "n_reports": 3
+          },
+          {
+            "category": "Verkehrsunfall",
+            "rate_per_30d": 0.24,
+            "p14": 0.1,
+            "p30": 0.2,
+            "t50": 108,
+            "t80": null,
+            "n_reports": 3
           }
         ]
       }
     },
     {
-      "stadtteil": "Huchting",
-      "lat": 53.05194,
-      "lon": 8.7423,
-      "score": 0.135,
-      "rank": 12,
+      "stadtteil": "Schwachhausen",
+      "lat": 53.08543,
+      "lon": 8.83631,
+      "score": 0.244,
+      "rank": 8,
       "elevated": false,
       "timing": {
         "any": {
-          "rate_per_30d": 1.96,
-          "p14": 0.58,
-          "p30": 0.83,
-          "t50": 12,
-          "t80": 28,
-          "n_reports": 20
+          "rate_per_30d": 2.78,
+          "p14": 0.71,
+          "p30": 0.92,
+          "t50": 8,
+          "t80": 19,
+          "n_reports": 30
         },
         "offenses": [
           {
             "category": "Koerperverletzung",
+            "rate_per_30d": 0.41,
+            "p14": 0.17,
+            "p30": 0.32,
+            "t50": 58,
+            "t80": 159,
+            "n_reports": 5
+          },
+          {
+            "category": "Drogendelikt",
             "rate_per_30d": 0.35,
             "p14": 0.15,
             "p30": 0.28,
             "t50": 69,
             "t80": null,
-            "n_reports": 4
+            "n_reports": 3
           },
           {
-            "category": "Sachbeschaedigung",
+            "category": "Waffendelikt",
             "rate_per_30d": 0.29,
             "p14": 0.12,
             "p30": 0.24,
-            "t50": 85,
-            "t80": null,
-            "n_reports": 4
-          },
-          {
-            "category": "Raub",
-            "rate_per_30d": 0.17,
-            "p14": 0.07,
-            "p30": 0.14,
-            "t50": 170,
+            "t50": 84,
             "t80": null,
             "n_reports": 3
           }
@@ -619,25 +431,25 @@
       "stadtteil": "Blumenthal",
       "lat": 53.18179,
       "lon": 8.57263,
-      "score": 0.12,
-      "rank": 13,
+      "score": 0.205,
+      "rank": 9,
       "elevated": false,
       "timing": {
         "any": {
-          "rate_per_30d": 1.25,
-          "p14": 0.43,
-          "p30": 0.68,
+          "rate_per_30d": 1.24,
+          "p14": 0.42,
+          "p30": 0.67,
           "t50": 18,
-          "t80": 45,
+          "t80": 46,
           "n_reports": 16
         },
         "offenses": [
           {
             "category": "Einbruch",
-            "rate_per_30d": 0.19,
+            "rate_per_30d": 0.18,
             "p14": 0.08,
             "p30": 0.16,
-            "t50": 148,
+            "t50": 149,
             "t80": null,
             "n_reports": 3
           },
@@ -663,19 +475,160 @@
       }
     },
     {
-      "stadtteil": "Hemelingen",
-      "lat": 53.05557,
-      "lon": 8.88431,
-      "score": 0.093,
-      "rank": 14,
+      "stadtteil": "Obervieland",
+      "lat": 53.03885,
+      "lon": 8.83796,
+      "score": 0.193,
+      "rank": 10,
       "elevated": false,
       "timing": {
         "any": {
-          "rate_per_30d": 2.12,
+          "rate_per_30d": 2.11,
           "p14": 0.61,
           "p30": 0.85,
           "t50": 11,
-          "t80": 25,
+          "t80": 26,
+          "n_reports": 24
+        },
+        "offenses": [
+          {
+            "category": "Sachbeschaedigung",
+            "rate_per_30d": 0.18,
+            "p14": 0.08,
+            "p30": 0.16,
+            "t50": 150,
+            "t80": null,
+            "n_reports": 3
+          },
+          {
+            "category": "Verkehrsunfall",
+            "rate_per_30d": 0.22,
+            "p14": 0.09,
+            "p30": 0.19,
+            "t50": null,
+            "t80": null,
+            "n_reports": 2
+          },
+          {
+            "category": "Drogendelikt",
+            "rate_per_30d": 0.14,
+            "p14": 0.06,
+            "p30": 0.12,
+            "t50": null,
+            "t80": null,
+            "n_reports": 2
+          }
+        ]
+      }
+    },
+    {
+      "stadtteil": "Huchting",
+      "lat": 53.05194,
+      "lon": 8.7423,
+      "score": 0.157,
+      "rank": 11,
+      "elevated": false,
+      "timing": {
+        "any": {
+          "rate_per_30d": 1.94,
+          "p14": 0.58,
+          "p30": 0.83,
+          "t50": 12,
+          "t80": 28,
+          "n_reports": 20
+        },
+        "offenses": [
+          {
+            "category": "Koerperverletzung",
+            "rate_per_30d": 0.35,
+            "p14": 0.15,
+            "p30": 0.28,
+            "t50": 69,
+            "t80": null,
+            "n_reports": 4
+          },
+          {
+            "category": "Sachbeschaedigung",
+            "rate_per_30d": 0.29,
+            "p14": 0.12,
+            "p30": 0.24,
+            "t50": 86,
+            "t80": null,
+            "n_reports": 4
+          },
+          {
+            "category": "Raub",
+            "rate_per_30d": 0.16,
+            "p14": 0.07,
+            "p30": 0.14,
+            "t50": 171,
+            "t80": null,
+            "n_reports": 3
+          }
+        ]
+      }
+    },
+    {
+      "stadtteil": "Vegesack",
+      "lat": 53.17052,
+      "lon": 8.62388,
+      "score": 0.106,
+      "rank": 12,
+      "elevated": false,
+      "timing": {
+        "any": {
+          "rate_per_30d": 1.95,
+          "p14": 0.58,
+          "p30": 0.83,
+          "t50": 12,
+          "t80": 28,
+          "n_reports": 27
+        },
+        "offenses": [
+          {
+            "category": "Einbruch",
+            "rate_per_30d": 0.42,
+            "p14": 0.17,
+            "p30": 0.33,
+            "t50": 56,
+            "t80": 152,
+            "n_reports": 8
+          },
+          {
+            "category": "Raub",
+            "rate_per_30d": 0.35,
+            "p14": 0.15,
+            "p30": 0.28,
+            "t50": 68,
+            "t80": null,
+            "n_reports": 4
+          },
+          {
+            "category": "Waffendelikt",
+            "rate_per_30d": 0.27,
+            "p14": 0.11,
+            "p30": 0.22,
+            "t50": 94,
+            "t80": null,
+            "n_reports": 4
+          }
+        ]
+      }
+    },
+    {
+      "stadtteil": "Hemelingen",
+      "lat": 53.05557,
+      "lon": 8.88431,
+      "score": 0.105,
+      "rank": 13,
+      "elevated": false,
+      "timing": {
+        "any": {
+          "rate_per_30d": 2.1,
+          "p14": 0.61,
+          "p30": 0.85,
+          "t50": 11,
+          "t80": 26,
           "n_reports": 35
         },
         "offenses": [
@@ -683,8 +636,8 @@
             "category": "Raub",
             "rate_per_30d": 0.23,
             "p14": 0.1,
-            "p30": 0.2,
-            "t50": 111,
+            "p30": 0.19,
+            "t50": 112,
             "t80": null,
             "n_reports": 5
           },
@@ -713,16 +666,16 @@
       "stadtteil": "Häfen",
       "lat": 53.1125,
       "lon": 8.73417,
-      "score": 0.07,
-      "rank": 15,
+      "score": 0.061,
+      "rank": 14,
       "elevated": false,
       "timing": {
         "any": {
           "rate_per_30d": 0.92,
-          "p14": 0.34,
-          "p30": 0.57,
+          "p14": 0.33,
+          "p30": 0.56,
           "t50": 25,
-          "t80": 64,
+          "t80": 65,
           "n_reports": 7
         },
         "offenses": [
@@ -737,7 +690,7 @@
           },
           {
             "category": "Waffendelikt",
-            "rate_per_30d": 0.08,
+            "rate_per_30d": 0.07,
             "p14": 0.03,
             "p30": 0.07,
             "t50": null,
@@ -748,7 +701,7 @@
             "category": "Verkehrsunfall",
             "rate_per_30d": 0.07,
             "p14": 0.03,
-            "p30": 0.07,
+            "p30": 0.06,
             "t50": null,
             "t80": null,
             "n_reports": 1
@@ -757,124 +710,48 @@
       }
     },
     {
-      "stadtteil": "Vegesack",
-      "lat": 53.17052,
-      "lon": 8.62388,
-      "score": 0.052,
-      "rank": 16,
+      "stadtteil": "Burglesum",
+      "lat": 53.16109,
+      "lon": 8.69172,
+      "score": 0.053,
+      "rank": 15,
       "elevated": false,
       "timing": {
         "any": {
-          "rate_per_30d": 1.97,
-          "p14": 0.58,
-          "p30": 0.83,
-          "t50": 11,
-          "t80": 27,
-          "n_reports": 27
+          "rate_per_30d": 1.92,
+          "p14": 0.57,
+          "p30": 0.82,
+          "t50": 12,
+          "t80": 28,
+          "n_reports": 19
         },
         "offenses": [
-          {
-            "category": "Einbruch",
-            "rate_per_30d": 0.42,
-            "p14": 0.17,
-            "p30": 0.33,
-            "t50": 56,
-            "t80": 150,
-            "n_reports": 8
-          },
           {
             "category": "Raub",
-            "rate_per_30d": 0.36,
-            "p14": 0.15,
-            "p30": 0.28,
-            "t50": 67,
-            "t80": null,
-            "n_reports": 4
-          },
-          {
-            "category": "Waffendelikt",
-            "rate_per_30d": 0.27,
-            "p14": 0.11,
-            "p30": 0.22,
-            "t50": 94,
-            "t80": null,
-            "n_reports": 4
-          }
-        ]
-      }
-    },
-    {
-      "stadtteil": "Horn-Lehe",
-      "lat": 53.10362,
-      "lon": 8.88188,
-      "score": 0.041,
-      "rank": 17,
-      "elevated": false,
-      "timing": {
-        "any": {
-          "rate_per_30d": 1.13,
-          "p14": 0.39,
-          "p30": 0.64,
-          "t50": 20,
-          "t80": 51,
-          "n_reports": 17
-        },
-        "offenses": [
-          {
-            "category": "Sachbeschaedigung",
-            "rate_per_30d": 0.36,
-            "p14": 0.15,
-            "p30": 0.29,
-            "t50": 67,
-            "t80": null,
-            "n_reports": 6
+            "rate_per_30d": 0.47,
+            "p14": 0.19,
+            "p30": 0.36,
+            "t50": 49,
+            "t80": 130,
+            "n_reports": 5
           },
           {
             "category": "Einbruch",
-            "rate_per_30d": 0.06,
-            "p14": 0.02,
-            "p30": 0.05,
+            "rate_per_30d": 0.31,
+            "p14": 0.13,
+            "p30": 0.25,
             "t50": null,
             "t80": null,
             "n_reports": 2
           },
           {
-            "category": "Verkehrsunfall",
-            "rate_per_30d": 0.03,
-            "p14": 0.01,
-            "p30": 0.03,
+            "category": "Koerperverletzung",
+            "rate_per_30d": 0.09,
+            "p14": 0.04,
+            "p30": 0.08,
             "t50": null,
             "t80": null,
             "n_reports": 2
-          }
-        ]
-      }
-    },
-    {
-      "stadtteil": "Borgfeld",
-      "lat": 53.1253,
-      "lon": 8.90504,
-      "score": 0.02,
-      "rank": 18,
-      "elevated": false,
-      "timing": {
-        "any": {
-          "rate_per_30d": 0.19,
-          "p14": 0.08,
-          "p30": 0.15,
-          "t50": null,
-          "t80": null,
-          "n_reports": 1
-        },
-        "offenses": [
-          {
-            "category": "Toetungsdelikt",
-            "rate_per_30d": 0.04,
-            "p14": 0.02,
-            "p30": 0.04,
-            "t50": null,
-            "t80": null,
-            "n_reports": 1
           }
         ]
       }
@@ -883,16 +760,16 @@
       "stadtteil": "Woltmershausen",
       "lat": 53.07963,
       "lon": 8.77022,
-      "score": 0.01,
-      "rank": 19,
+      "score": 0.041,
+      "rank": 16,
       "elevated": false,
       "timing": {
         "any": {
-          "rate_per_30d": 1.39,
+          "rate_per_30d": 1.38,
           "p14": 0.46,
           "p30": 0.71,
           "t50": 16,
-          "t80": 40,
+          "t80": 41,
           "n_reports": 17
         },
         "offenses": [
@@ -901,8 +778,8 @@
             "rate_per_30d": 0.39,
             "p14": 0.16,
             "p30": 0.31,
-            "t50": 60,
-            "t80": 165,
+            "t50": 61,
+            "t80": 166,
             "n_reports": 6
           },
           {
@@ -927,15 +804,62 @@
       }
     },
     {
+      "stadtteil": "Horn-Lehe",
+      "lat": 53.10362,
+      "lon": 8.88188,
+      "score": 0.032,
+      "rank": 17,
+      "elevated": false,
+      "timing": {
+        "any": {
+          "rate_per_30d": 1.12,
+          "p14": 0.39,
+          "p30": 0.64,
+          "t50": 20,
+          "t80": 51,
+          "n_reports": 17
+        },
+        "offenses": [
+          {
+            "category": "Sachbeschaedigung",
+            "rate_per_30d": 0.36,
+            "p14": 0.15,
+            "p30": 0.28,
+            "t50": 67,
+            "t80": null,
+            "n_reports": 6
+          },
+          {
+            "category": "Einbruch",
+            "rate_per_30d": 0.05,
+            "p14": 0.02,
+            "p30": 0.05,
+            "t50": null,
+            "t80": null,
+            "n_reports": 2
+          },
+          {
+            "category": "Verkehrsunfall",
+            "rate_per_30d": 0.03,
+            "p14": 0.01,
+            "p30": 0.03,
+            "t50": null,
+            "t80": null,
+            "n_reports": 2
+          }
+        ]
+      }
+    },
+    {
       "stadtteil": "Oberneuland",
       "lat": 53.08986,
       "lon": 8.93691,
       "score": 0.002,
-      "rank": 20,
+      "rank": 18,
       "elevated": false,
       "timing": {
         "any": {
-          "rate_per_30d": 0.32,
+          "rate_per_30d": 0.31,
           "p14": 0.13,
           "p30": 0.25,
           "t50": null,
@@ -969,7 +893,7 @@
       "lat": 53.14222,
       "lon": 8.80002,
       "score": 0.001,
-      "rank": 21,
+      "rank": 19,
       "elevated": false,
       "timing": {
         "any": {
@@ -984,6 +908,82 @@
       }
     },
     {
+      "stadtteil": "Vahr",
+      "lat": 53.07865,
+      "lon": 8.87757,
+      "score": 0.0,
+      "rank": 20,
+      "elevated": false,
+      "timing": {
+        "any": {
+          "rate_per_30d": 1.26,
+          "p14": 0.43,
+          "p30": 0.68,
+          "t50": 18,
+          "t80": 45,
+          "n_reports": 19
+        },
+        "offenses": [
+          {
+            "category": "Verkehrsunfall",
+            "rate_per_30d": 0.21,
+            "p14": 0.09,
+            "p30": 0.18,
+            "t50": 125,
+            "t80": null,
+            "n_reports": 5
+          },
+          {
+            "category": "Raub",
+            "rate_per_30d": 0.2,
+            "p14": 0.09,
+            "p30": 0.17,
+            "t50": 137,
+            "t80": null,
+            "n_reports": 3
+          },
+          {
+            "category": "Brandstiftung",
+            "rate_per_30d": 0.09,
+            "p14": 0.04,
+            "p30": 0.08,
+            "t50": null,
+            "t80": null,
+            "n_reports": 2
+          }
+        ]
+      }
+    },
+    {
+      "stadtteil": "Borgfeld",
+      "lat": 53.1253,
+      "lon": 8.90504,
+      "score": 0.0,
+      "rank": 21,
+      "elevated": false,
+      "timing": {
+        "any": {
+          "rate_per_30d": 0.18,
+          "p14": 0.08,
+          "p30": 0.15,
+          "t50": null,
+          "t80": null,
+          "n_reports": 1
+        },
+        "offenses": [
+          {
+            "category": "Toetungsdelikt",
+            "rate_per_30d": 0.04,
+            "p14": 0.02,
+            "p30": 0.04,
+            "t50": null,
+            "t80": null,
+            "n_reports": 1
+          }
+        ]
+      }
+    },
+    {
       "stadtteil": "Strom",
       "lat": 53.08393,
       "lon": 8.69912,
@@ -992,7 +992,7 @@
       "elevated": false,
       "timing": {
         "any": {
-          "rate_per_30d": 0.13,
+          "rate_per_30d": 0.12,
           "p14": 0.05,
           "p30": 0.11,
           "t50": null,
@@ -1011,7 +1011,7 @@
       "elevated": false,
       "timing": {
         "any": {
-          "rate_per_30d": 0.13,
+          "rate_per_30d": 0.12,
           "p14": 0.05,
           "p30": 0.11,
           "t50": null,
