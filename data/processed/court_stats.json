@@ -3,15 +3,15 @@
   "n_cases_since_2024": 113,
   "n_matched_to_incidents": 1,
   "outcome_stage_counts": {
-    "auftakt": 109,
-    "rechtskraft": 3,
+    "rechtskraft": 4,
+    "auftakt": 108,
     "urteilstermin": 1
   },
   "category_counts": {
+    "Toetungsdelikt": 5,
     "Drogendelikt": 18,
     "Waffendelikt": 6,
     "Koerperverletzung": 25,
-    "Toetungsdelikt": 5,
     "Raub": 50,
     "Sachbeschaedigung": 1,
     "Diebstahl": 2,
