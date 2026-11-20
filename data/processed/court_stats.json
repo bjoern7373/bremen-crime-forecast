@@ -1,17 +1,17 @@
 {
   "source": "Landgericht Bremen",
-  "n_cases_since_2024": 113,
+  "n_cases_since_2024": 114,
   "n_matched_to_incidents": 1,
   "outcome_stage_counts": {
+    "auftakt": 109,
     "rechtskraft": 4,
-    "auftakt": 108,
     "urteilstermin": 1
   },
   "category_counts": {
+    "Koerperverletzung": 26,
     "Toetungsdelikt": 5,
     "Drogendelikt": 18,
     "Waffendelikt": 6,
-    "Koerperverletzung": 25,
     "Raub": 50,
     "Sachbeschaedigung": 1,
     "Diebstahl": 2,
